@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { createFacultyRequest, deleteFacultyRequest, getFacultiesRequest, updateFacultyRequest } from './../api/Faculty';
+import { createFacultyRequest, deleteFacultyRequest, getFacultiesRequest, updateFacultyRequest } from '../api/faculty';
 
 export const FacultyContext = createContext();
 
