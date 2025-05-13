@@ -23,6 +23,9 @@ export default defineConfig(({ mode: configMode }) => {
       host: '0.0.0.0',
       port: parseInt(process.env.VITE_PORT || '5173'),    
     },
+    preview: {
+      allowedHosts: ['repo-web.onrender.com', 'localhost'],
+    },
     // Additional production settings if needed
     ...(isProduction && {
       build: {
