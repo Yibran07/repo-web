@@ -1,26 +1,76 @@
-import { useState } from "react";
-import {useForm} from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 
-import { useAuth } from "../context/AuthContext";
 import { useDocuments } from "../context/DocumentContext";
+import { useAuth } from "../context/AuthContext";
+import { useCategory } from "../context/CategoryContext";
+import { useUser } from "../context/UserContext";
+import { useStudent } from "../context/StudentContext";
 
-const DocumentFormModal = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+import { showSuccessToast, showErrorToast } from "../util/toastUtils";
+
+
+const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const [loading, setLoading] = useState(false);
-  const [showSecondSupervisor, setShowSecondSupervisor] = useState(false);
-  const {register, unregister, handleSubmit} = useForm()
-  const {createdocument} = useDocuments()
+  const { register, handleSubmit, reset } = useForm();
+  const { createDocument, createDocumentByUser } = useDocuments();
+  const { user } = useAuth();
+  const { categories } = useCategory();
+  const { users } = useUser();
+  const { students } = useStudent();
 
-  const handleCheckboxChange = (e) => {
-    const isChecked = e.target.checked;
-    setShowSecondSupervisor(isChecked);
-    if (!isChecked) {
-      unregister("supervisor2");
+  const isEditing = !!document;
+  const modalTitle = isEditing ? "Editar Recurso" : "Agregar Recurso";
+  const buttonText = isEditing ? "Actualizar" : "Guardar";
+
+  useEffect(() => {
+      if (document) {
+        reset({
+          idResource: document.idResource,
+          title: document.title,
+          description: document.description,
+          datePublication: document.datePublication.split("T")[0],
+          isActive: document.isActive,
+          filePath: document.filePath,
+          idStudent: document.idStudent,
+          idCategory: document.idCategory,
+          idDirector: document.idDirector,
+          idRevisor1: document.idRevisor1,
+          idRevisor2: document.idRevisor2,
+        });
+      } else {
+        reset({
+          idResource: null,
+          title: "",
+          description: "",
+          datePublication: "",
+          isActive: 1,
+          idStudent: null,
+          idCategory: null,
+          idDirector: user.user.idUser,
+          idRevisor1: null,
+          idRevisor2: null,
+        });
+      }
+    }, [document, reset]);
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      setLoading(true);
+      console.log(data);
+      const rescre = await createDocument(data);
+      await createDocumentByUser(user.user.idUser, rescre.data.resource.idResource);
+      if (rescre && rescre.success) {
+        showSuccessToast("Recurso", "creado");
+        onClose();
+      }else{
+        showErrorToast("Error al crear el Recurso");
+      }
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const onSubmit = handleSubmit((data) => {
-    createdocument(data);
   });
 
   if (!isOpen) return null;
@@ -29,7 +79,7 @@ const DocumentFormModal = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 flex justify-center items-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50 }}>
       <div className="bg-white rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-[#003DA5]">Agregar Documento</h2>
+          <h2 className="text-2xl font-bold text-[#003DA5]">{modalTitle}</h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -40,7 +90,7 @@ const DocumentFormModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" encType="multipart/form-data">
           <div>
             <label className="block text-gray-700 mb-1">Título</label>
             <input
@@ -63,91 +113,88 @@ const DocumentFormModal = ({ isOpen, onClose }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1">Director</label>
+            <label className="block text-gray-700 mb-1">Estudiante</label>
             <select
-              name="director"
+              name="idStudent"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register("director")}
+              {...register("idStudent")}
               required
             >
-              <option value="">Seleccionar director</option>
-              <option value="Tesis">Tesis</option>
-              <option value="Proyecto Final">Proyecto Final</option>
-              <option value="Investigación">Investigación</option>
-              <option value="Artículo">Artículo</option>
+              <option value="">Seleccionar estudiante</option>
+              {students.map(student => (
+                <option key={student.idStudent} value={student.idStudent}>
+                  {student.name}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-1">Primer supervisor</label>
+              <label className="block text-gray-700 mb-1">Primer revisor</label>
               <select
-                name="supervisor1"
+                name="idRevisor1"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("supervisor1")}
+                {...register("idRevisor1")}
                 required
               >
-                <option value="">Seleccionar supervisor</option>
-                <option value="Tesis">Tesis</option>
-                <option value="Proyecto Final">Proyecto Final</option>
-                <option value="Investigación">Investigación</option>
-                <option value="Artículo">Artículo</option>
+                <option value="">Seleccionar revisor</option>
+                {users
+                .filter(user => user.rol !== "director" && user.rol !== "admin")
+                .map(user => (
+                  <option key={user.idUser} value={user.idUser}>
+                    {user.name}
+                  </option>
+                ))}
               </select>
             </div>
 
-            <div className="flex justify-center items-center">
-              <label className="text-gray-700 gap-4">¿Agregar otro supervisor?</label>
-              <input 
-                className="ml-4 h-5 w-5" 
-                type="checkbox"
-                checked={showSecondSupervisor}
-                onChange={handleCheckboxChange}
-              />
-            </div>
-          </div>
-          
-          {showSecondSupervisor && (
             <div>
-              <label className="block text-gray-700 mb-1">Segundo supervisor</label>
+              <label className="block text-gray-700 mb-1">Segundo revisor</label>
               <select
-                name="supervisor2"
+                name="idRevisor2"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("supervisor2")}
-                required={showSecondSupervisor}
+                {...register("idRevisor2")}
+                required
               >
-                <option value="">Seleccionar supervisor</option>
-                <option value="Tesis">Tesis</option>
-                <option value="Proyecto Final">Proyecto Final</option>
-                <option value="Investigación">Investigación</option>
-                <option value="Artículo">Artículo</option>
+                <option value="">Seleccionar revisor</option>
+                {users
+                .filter(user => user.rol !== "director" && user.rol !== "admin")
+                .map(user => (
+                  <option key={user.idUser} value={user.idUser}>
+                    {user.name}
+                  </option>
+                ))}
               </select>
             </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-1">Año</label>
+              <label className="block text-gray-700 mb-1">Fecha</label>
               <input
-                type="number"
+                type="date"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="1900"
-                max={new Date().getFullYear()}
-                {...register("año")}
+                min="1900-01-01"
+                max={new Date().toISOString().split("T")[0]}
+                {...register("datePublication")}
                 required
               />
             </div>
             <div>
               <label className="block text-gray-700 mb-1">Categoría</label>
               <select
-                name="category"
+                name="idCategory"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("category")}
+                {...register("idCategory")}
                 required
               >
-                <option value="Tesis">Tesis</option>
-                <option value="Proyecto Final">Proyecto Final</option>
-                <option value="Investigación">Investigación</option>
-                <option value="Artículo">Artículo</option>
+                <option value="">Seleccionar categoria</option>
+                {categories.map(category => (
+                  <option key={category.idCategory} value={category.idCategory}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -157,7 +204,6 @@ const DocumentFormModal = ({ isOpen, onClose }) => {
             <input
               type="file"
               accept=".pdf,.png,.jpg,.jpeg,.mp4"
-              // onChange={handleFileChange}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               {...register("file")}
               required
@@ -188,7 +234,7 @@ const DocumentFormModal = ({ isOpen, onClose }) => {
               disabled={loading}
               className="px-4 py-2 bg-[#003DA5] text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? "Subiendo..." : "Subir Documento"}
+              {loading ? "Procesando..." : buttonText}
             </button>
           </div>
         </form>

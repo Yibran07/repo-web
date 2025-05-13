@@ -1,27 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useCareer } from '../context/CareerContext';
+import { useCategory } from '../context/CategoryContext';
+import { useFaculty } from '../context/FacultyContext';
+import { useDocuments } from '../context/DocumentContext';
+import { useStudent } from '../context/StudentContext';
 
 const Sidebar = ({ 
   showMobileSidebar, 
   setShowMobileSidebar,
-  selectedFaculties,
-  setSelectedFaculties,
-  selectedCategories,
-  setSelectedCategories,
-  selectedYears,
-  setSelectedYears,
-  selectedFormats,
-  setSelectedFormats,
-  selectedLanguages,
-  setSelectedLanguages
+  onFilterChange
 }) => {
+  const [selectedFaculties, setSelectedFaculties] = useState([]);
+  const [selectedCareers, setSelectedCareers] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
   
-  // Estado para controlar qué secciones están expandidas
+  const { faculties } = useFaculty();
+  const { careers } = useCareer();
+  const { categories } = useCategory();
+  const { documents } = useDocuments();
+  const { students } = useStudent();
+  
+  const [availableYears, setAvailableYears] = useState([]);
+  
+  // Extraer años únicos de los documentos
+  useEffect(() => {
+    if (documents?.resources) {
+      const years = [...new Set(documents.resources.map(doc => {
+        if (!doc.datePublication) return null;
+        return new Date(doc.datePublication).getFullYear().toString();
+      }).filter(Boolean))].sort((a, b) => b - a); // Ordenar descendente
+      
+      setAvailableYears(years);
+    }
+  }, [documents]);
+  
+  // Expandir/colapsar secciones
   const [expandedSections, setExpandedSections] = useState({
-    faculty: true,  // Por defecto, la primera sección está expandida
+    faculty: false,
+    career: false,
     category: false,
-    year: false,
-    format: false,
-    language: false
+    year: false
   });
 
   // Función para alternar la expansión de una sección
@@ -33,21 +52,55 @@ const Sidebar = ({
   };
 
   // Toggle selection function
-  const toggleSelection = (item, selectedArray, setSelectedArray) => {
+  const toggleSelection = (item, selectedArray, setSelectedArray, type) => {
+    let newSelection;
     if (selectedArray.includes(item)) {
-      setSelectedArray(selectedArray.filter(i => i !== item));
+      newSelection = selectedArray.filter(i => i !== item);
     } else {
-      setSelectedArray([...selectedArray, item]);
+      newSelection = [...selectedArray, item];
     }
+    setSelectedArray(newSelection);
+    
+    // Si cambia la selección de facultades, podríamos filtrar las carreras relevantes
+    if (type === 'faculty') {
+      // Si no hay facultades seleccionadas, no filtramos carreras
+      if (newSelection.length === 0) {
+        // No hacemos nada especial, todas las carreras se mostrarán
+      } else {
+        // Podríamos filtrar las carreras que pertenecen a las facultades seleccionadas
+        // Esto es opcional, depende de la UX que prefieras
+      }
+    }
+    
+    // Notificar al componente padre sobre el cambio de filtros
+    updateFilters(type, newSelection);
+  };
+  
+  // Actualizar filtros y notificar al componente padre
+  const updateFilters = (changedType, newSelection) => {
+    const filters = {
+      faculties: changedType === 'faculty' ? newSelection : selectedFaculties,
+      careers: changedType === 'career' ? newSelection : selectedCareers,
+      categories: changedType === 'category' ? newSelection : selectedCategories,
+      years: changedType === 'year' ? newSelection : selectedYears
+    };
+    
+    onFilterChange(filters);
   };
 
   // Clear all filters function
   const clearAllFilters = () => {
     setSelectedFaculties([]);
+    setSelectedCareers([]);
     setSelectedCategories([]);
     setSelectedYears([]);
-    setSelectedFormats([]);
-    setSelectedLanguages([]);
+    
+    onFilterChange({
+      faculties: [],
+      careers: [],
+      categories: [],
+      years: []
+    });
   };
 
   return (
@@ -58,7 +111,7 @@ const Sidebar = ({
           showMobileSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setShowMobileSidebar(false)}
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50 }}
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 20 }}
       ></div>
       
       {/* Left sidebar for filters - desktop always visible, mobile toggleable */}
@@ -111,21 +164,70 @@ const Sidebar = ({
               </span>
             </div>
             
-            {expandedSections.faculty && (
+            {expandedSections.faculty && faculties.length > 0 && (
               <div className='space-y-2 mt-3'>
-                {['Ciencias Administrativas', 'Ciencias de la Salud', 'Ingeniería', 'Arquitectura'].map((faculty) => (
+                {faculties.map((faculty) => (
                   <div 
-                    key={faculty} 
+                    key={faculty.idFaculty} 
                     className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
-                      selectedFaculties.includes(faculty) 
+                      selectedFaculties.includes(faculty.idFaculty) 
                         ? 'bg-blue-100 text-[#003DA5] font-medium' 
                         : 'hover:bg-blue-50 hover:text-[#003DA5]'
                     }`}
-                    onClick={() => toggleSelection(faculty, selectedFaculties, setSelectedFaculties)}
+                    onClick={() => toggleSelection(faculty.idFaculty, selectedFaculties, setSelectedFaculties, 'faculty')}
                   >
-                    {faculty}
+                    {faculty.name}
                   </div>
                 ))}
+              </div>
+            )}
+            
+            {expandedSections.faculty && faculties.length === 0 && (
+              <div className='mt-3 text-gray-500 italic text-sm'>
+                No hay facultades disponibles
+              </div>
+            )}
+          </div>
+          
+          {/* Carrera filter - collapsible */}
+          <div className='mb-3 border-b border-gray-200 pb-3'>
+            <div 
+              className='flex justify-between items-center cursor-pointer'
+              onClick={() => toggleSection('career')}
+            >
+              <h3 className='font-semibold text-gray-700'>Carrera</h3>
+              <span className='text-gray-500'>
+                {expandedSections.career ? '−' : '+'}
+              </span>
+            </div>
+            
+            {expandedSections.career && careers.length > 0 && (
+              <div className='space-y-2 mt-3'>
+                {careers
+                  // Opcionalmente filtrar por facultades seleccionadas
+                  .filter(career => {
+                    if (selectedFaculties.length === 0) return true;
+                    return selectedFaculties.includes(career.idFaculty);
+                  })
+                  .map((career) => (
+                    <div 
+                      key={career.idCareer} 
+                      className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
+                        selectedCareers.includes(career.idCareer) 
+                          ? 'bg-blue-100 text-[#003DA5] font-medium' 
+                          : 'hover:bg-blue-50 hover:text-[#003DA5]'
+                      }`}
+                      onClick={() => toggleSelection(career.idCareer, selectedCareers, setSelectedCareers, 'career')}
+                    >
+                      {career.name}
+                    </div>
+                  ))}
+              </div>
+            )}
+            
+            {expandedSections.career && careers.length === 0 && (
+              <div className='mt-3 text-gray-500 italic text-sm'>
+                No hay carreras disponibles
               </div>
             )}
           </div>
@@ -142,21 +244,27 @@ const Sidebar = ({
               </span>
             </div>
             
-            {expandedSections.category && (
+            {expandedSections.category && categories.length > 0 && (
               <div className='space-y-2 mt-3'>
-                {['Tesis', 'Proyectos de investigación', 'Artículos'].map((category) => (
+                {categories.map((category) => (
                   <div 
-                    key={category} 
+                    key={category.idCategory} 
                     className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
-                      selectedCategories.includes(category) 
+                      selectedCategories.includes(category.idCategory) 
                         ? 'bg-blue-100 text-[#003DA5] font-medium' 
                         : 'hover:bg-blue-50 hover:text-[#003DA5]'
                     }`}
-                    onClick={() => toggleSelection(category, selectedCategories, setSelectedCategories)}
+                    onClick={() => toggleSelection(category.idCategory, selectedCategories, setSelectedCategories, 'category')}
                   >
-                    {category}
+                    {category.name}
                   </div>
                 ))}
+              </div>
+            )}
+            
+            {expandedSections.category && categories.length === 0 && (
+              <div className='mt-3 text-gray-500 italic text-sm'>
+                No hay categorías disponibles
               </div>
             )}
           </div>
@@ -173,9 +281,9 @@ const Sidebar = ({
               </span>
             </div>
             
-            {expandedSections.year && (
+            {expandedSections.year && availableYears.length > 0 && (
               <div className='space-y-2 mt-3'>
-                {['2023', '2022', '2021', '2020'].map((year) => (
+                {availableYears.map((year) => (
                   <div 
                     key={year} 
                     className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
@@ -183,76 +291,36 @@ const Sidebar = ({
                         ? 'bg-blue-100 text-[#003DA5] font-medium' 
                         : 'hover:bg-blue-50 hover:text-[#003DA5]'
                     }`}
-                    onClick={() => toggleSelection(year, selectedYears, setSelectedYears)}
+                    onClick={() => toggleSelection(year, selectedYears, setSelectedYears, 'year')}
                   >
                     {year}
                   </div>
                 ))}
               </div>
             )}
-          </div>
-          
-          {/* Formato filter - collapsible */}
-          <div className='mb-3 border-b border-gray-200 pb-3'>
-            <div 
-              className='flex justify-between items-center cursor-pointer'
-              onClick={() => toggleSection('format')}
-            >
-              <h3 className='font-semibold text-gray-700'>Formato</h3>
-              <span className='text-gray-500'>
-                {expandedSections.format ? '−' : '+'}
-              </span>
-            </div>
             
-            {expandedSections.format && (
-              <div className='space-y-2 mt-3'>
-                {['PDF', 'DOCX', 'PPT'].map((format) => (
-                  <div 
-                    key={format} 
-                    className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
-                      selectedFormats.includes(format) 
-                        ? 'bg-blue-100 text-[#003DA5] font-medium' 
-                        : 'hover:bg-blue-50 hover:text-[#003DA5]'
-                    }`}
-                    onClick={() => toggleSelection(format, selectedFormats, setSelectedFormats)}
-                  >
-                    {format}
-                  </div>
-                ))}
+            {expandedSections.year && availableYears.length === 0 && (
+              <div className='mt-3 text-gray-500 italic text-sm'>
+                No hay años disponibles
               </div>
             )}
           </div>
           
-          {/* Idioma filter - collapsible */}
-          <div className='mb-3'>
-            <div 
-              className='flex justify-between items-center cursor-pointer'
-              onClick={() => toggleSection('language')}
-            >
-              <h3 className='font-semibold text-gray-700'>Idioma</h3>
-              <span className='text-gray-500'>
-                {expandedSections.language ? '−' : '+'}
-              </span>
+          {selectedFaculties.length > 0 || selectedCareers.length > 0 || selectedCategories.length > 0 || selectedYears.length > 0 ? (
+            <div className='mt-4'>
+              <button
+                className='w-full py-2 px-3 bg-[#003DA5] text-white rounded font-medium hover:bg-blue-700 transition-colors'
+                onClick={() => onFilterChange({
+                  faculties: selectedFaculties, 
+                  careers: selectedCareers,
+                  categories: selectedCategories,
+                  years: selectedYears
+                })}
+              >
+                Aplicar Filtros
+              </button>
             </div>
-            
-            {expandedSections.language && (
-              <div className='space-y-2 mt-3'>
-                {['Español', 'Inglés', 'Francés'].map((language) => (
-                  <div 
-                    key={language} 
-                    className={`cursor-pointer py-1.5 px-2 rounded transition-colors ${
-                      selectedLanguages.includes(language) 
-                        ? 'bg-blue-100 text-[#003DA5] font-medium' 
-                        : 'hover:bg-blue-50 hover:text-[#003DA5]'
-                    }`}
-                    onClick={() => toggleSelection(language, selectedLanguages, setSelectedLanguages)}
-                  >
-                    {language}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          ) : null}
         </div>
       </div>
     </>

@@ -22,15 +22,21 @@ export const AuthProvider = ({children}) => {
     const singup = async (user) => {
         try{
             const res = await registerRequest(user);
-            setUser(res.data);
-            setIsAuthenticated(true);
+            return {
+                success: true,
+                data: res.data
+            }
         }catch(err){
-            if (err.response.data.errors) {
+            if (err.response?.data?.errors) {
                 setErrors(err.response.data.errors);
-            } else if (err.response.data.message) {
+            } else if (err.response?.data?.message) {
                 setErrors([{ message: err.response.data.message }]);
             } else {
                 setErrors([{ message: "Error en el registro" }]);
+            }
+            return {
+                success: false,
+                error: err
             }
         }
     }
@@ -67,33 +73,31 @@ export const AuthProvider = ({children}) => {
     }, [errors])
 
     useEffect(() => {
-        async function checkLogin(){
+        const checkLogin = async () => {
             const cookies = Cookies.get()
-            console.log(cookies)
-            if(cookies.token) {
-                console.log(cookies.token)
+            if(!cookies.token) {
+                setIsAuthenticated(false)
+                setLoading(false)
+                return setUser(null)
             }
-
-            // if(!cookies.token) {
-            //     setIsAuthenticated(false)
-            //     setLoading(false)
-            //     return setUser(null)
-            // }
-            // try{
-            //     //const res = await verifyTokenRequest(cookies.token)
-            //     // if(!res.data){
-            //     //     setIsAuthenticated(false)
-            //     //     setLoading(false)
-            //     //     return
-            //     // }
-            //     setIsAuthenticated(true)
-            //     //setUser(res.data)
-            //     setLoading(false)
-            // }catch(err){
-            //     setIsAuthenticated(false)
-            //     setUser(null)
-            //     setLoading(false)
-            // }
+            try{
+                console.log(cookies.token)
+                const res = await verifyTokenRequest(cookies.token)
+                console.log(res)
+                if(!res.data){
+                    setIsAuthenticated(false)
+                    setLoading(false)
+                    return
+                }
+                setIsAuthenticated(true)
+                setUser(res.data)
+                setLoading(false)
+            }catch(err){
+                console.error(err)
+                setIsAuthenticated(false)
+                setUser(null)
+                setLoading(false)
+            }
         }
         checkLogin()
     }, [])

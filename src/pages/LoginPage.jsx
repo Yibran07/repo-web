@@ -12,7 +12,6 @@ export default function LoginPage() {
 
   useEffect(() => {
       if(isAuthenticated) {
-        //navigate('/documents');
         navigate('/');
       }
     }, [isAuthenticated])
@@ -30,8 +29,15 @@ export default function LoginPage() {
     >
       {/* Card del formulario */}
       <div className="relative z-10 max-w-md w-full bg-white p-8 rounded-lg shadow-xl">
-        <h1 className="text-2xl font-bold mb-2">Inicio de Sesión</h1>
-        <p className="text-gray-600 mb-6">¿No eres un miembro? <Link to="/register" className="text-[#003DA5] cursor-pointer hover:underline">Registrate</Link></p>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold mb-2">Inicio de Sesión</h1>
+          <Link 
+            className='bg-[#003DA5] text-white border-2 border-[#003DA5] px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 whitespace-nowrap'
+            to="/"
+            >Inicio
+          </Link>        
+        </div>
+          <p className="text-gray-600 mb-6">¿No eres un miembro? <Link to="/register" className="text-[#003DA5] cursor-pointer hover:underline">Registrate</Link></p>
 
         {siginErrors.map((error, i) => (
           <div key={i} className='bg-red-500 p-2 text-white text-center'>

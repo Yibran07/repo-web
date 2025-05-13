@@ -1,217 +1,265 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
-import {useDocuments} from "../context/DocumentContext"
+
+import { useDocuments } from "../context/DocumentContext";
+import { useAuth } from '../context/AuthContext';
+import { useStudent } from '../context/StudentContext';
+import { useUser } from '../context/UserContext';
 
 export default function DocumentsPage() {
-  const [selectedFaculties, setSelectedFaculties] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedYears, setSelectedYears] = useState([]);
-  const [selectedFormats, setSelectedFormats] = useState([]);
-  const [selectedLanguages, setSelectedLanguages] = useState([]);
-  
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cardsPerPage] = useState(8);
+  const [activeFilters, setActiveFilters] = useState({
+    faculties: [],
+    careers: [],
+    categories: [],
+    years: []
+  });
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const {getDocuments} = useDocuments()
+  const { getDocumentsByUser, documents, loading } = useDocuments();
+  const { user } = useAuth();
+  const { students } = useStudent();
+  const { users } = useUser();
+  const allDocuments = documents?.resources || [];
+  
+  // Función para manejar la búsqueda desde el navbar
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Resetear a la primera página cuando se busca
+  };
+  
+  // Filtrar documentos basados en los filtros activos y el término de búsqueda
+  const filteredDocuments = useMemo(() => {
+    if (!allDocuments.length) return [];
+    
+    // Primera etapa: filtrar por filtros de sidebar
+    let results = allDocuments.filter(doc => {
+      // Aplicar filtros existentes (facultades, carreras, categorías, años)
+      // Filtrar por facultad (a través de estudiante -> carrera -> facultad)
+      const passesFacultyFilter = 
+        activeFilters.faculties.length === 0 || 
+        (doc.idStudent && 
+          activeFilters.faculties.some(facId => {
+            // Buscar la carrera del estudiante
+            const student = students.find(s => s.idStudent === doc.idStudent);
+            const studentCareer = student ? student.career : null;
+            
+            // Verificar si la facultad de la carrera coincide
+            return studentCareer && studentCareer.idFaculty === facId;
+          }));
+      
+      // Filtrar por carrera (a través de estudiante -> carrera)
+      const passesCareerFilter = 
+        activeFilters.careers.length === 0 || 
+        (doc.idStudent && activeFilters.careers.includes(doc.idStudent));
+      
+      // Filtro por categoría (directamente del documento)
+      const passesCategoryFilter = 
+        activeFilters.categories.length === 0 || 
+        activeFilters.categories.includes(doc.idCategory);
+      
+      // Filtro por año (directamente del documento)
+      const passesYearFilter = 
+        activeFilters.years.length === 0 || 
+        (doc.datePublication && 
+          activeFilters.years.includes(new Date(doc.datePublication).getFullYear().toString()));
+      
+      return passesFacultyFilter && passesCareerFilter && passesCategoryFilter && passesYearFilter;
+    });
+    
+    // Segunda etapa: filtrar por término de búsqueda
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      results = results.filter(doc => {
+        // Buscar en el título
+        const titleMatch = doc.title && doc.title.toLowerCase().includes(term);
+        
+        // Buscar por autor (director)
+        const author = users.find(user => user.idUser === doc.idDirector);
+        const authorMatch = author && author.name.toLowerCase().includes(term);
+        
+        // Devolver documentos que coincidan con título o autor
+        return titleMatch || authorMatch;
+      });
+    }
+    
+    return results;
+  }, [allDocuments, activeFilters, searchTerm, students, users]);
+  
+  // Manejar cambios en los filtros
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    setCurrentPage(1); // Resetear a la primera página cuando cambian los filtros
+  };
+
+  // Paginación
+  const indexOfLastCard = currentPage * cardsPerPage;
+  const indexOfFirstCard = indexOfLastCard - cardsPerPage;
+  const currentCards = filteredDocuments.slice(indexOfFirstCard, indexOfLastCard);
+  const totalPages = Math.ceil(filteredDocuments.length / cardsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  const goToPreviousPage = () => {
+    if (currentPage !== 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage !== totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   useEffect(() => {
-    getDocuments()
-  }, [])
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredDocuments, currentPage, totalPages]);
 
-  const cardData = [
-      {
-        id: 1,
-        title: "Avances en inteligencia artificial: nuevos horizontes",
-        author: "Dr. López",
-        date: "12/04/2023",
-        category: "Tecnología",
-        imageUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1932&auto=format&fit=crop"
-      },
-      {
-        id: 2,
-        title: "El impacto de la realidad virtual en la educación moderna",
-        author: "Mtra. García",
-        date: "05/07/2023",
-        category: "Educación",
-        imageUrl: "https://images.unsplash.com/photo-1626379953822-baec19c3accd?q=80&w=1854&auto=format&fit=crop"
-      },
-      {
-        id: 3,
-        title: "Desarrollo sostenible: retos y oportunidades",
-        author: "Dr. Martínez",
-        date: "23/08/2023",
-        category: "Sostenibilidad",
-        imageUrl: "https://images.unsplash.com/photo-1530533718754-001d2668365a?q=80&w=2070&auto=format&fit=crop"
-      },
-      {
-        id: 4,
-        title: "Investigación biomédica: avances recientes",
-        author: "Dra. Ramírez",
-        date: "15/09/2023",
-        category: "Salud",
-        imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=2070&auto=format&fit=crop"
-      },
-      {
-        id: 5,
-        title: "Economía circular y su aplicación en la industria",
-        author: "Dr. Ortiz",
-        date: "30/10/2023",
-        category: "Economía",
-        imageUrl: "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?q=80&w=2069&auto=format&fit=crop"
-      },
-      {
-        id: 6,
-        title: "Innovaciones tecnológicas en la agricultura",
-        author: "Mtro. Torres",
-        date: "02/11/2023",
-        category: "Agricultura",
-        imageUrl: "https://images.unsplash.com/photo-1517093728432-a0440f8d45af?q=80&w=2074&auto=format&fit=crop"
-      },
-      {
-        id: 7,
-        title: "El futuro de las energías renovables",
-        author: "Dra. Flores",
-        date: "18/11/2023",
-        category: "Energía",
-        imageUrl: "https://images.unsplash.com/photo-1515705576963-95cad62945b6?q=80&w=2070&auto=format&fit=crop"
-      },
-      {
-        id: 8,
-        title: "Neurociencia aplicada al aprendizaje",
-        author: "Dr. Sánchez",
-        date: "05/12/2023",
-        category: "Ciencias Cognitivas",
-        imageUrl: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?q=80&w=2070&auto=format&fit=crop"
-      },
-      {
-        id: 9,
-        title: "Neurociencia aplicada al aprendizaje",
-        author: "Dr. Sánchez",
-        date: "05/12/2023",
-        category: "Ciencias Cognitivas",
-        imageUrl: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?q=80&w=2070&auto=format&fit=crop"
-      }
-    ];
-  
-    const [currentPage, setCurrentPage] = useState(1);
-    const [cardsPerPage] = useState(8);
-  
-    const indexOfLastCard = currentPage * cardsPerPage;
-    const indexOfFirstCard = indexOfLastCard - cardsPerPage;
-    const currentCards = cardData.slice(indexOfFirstCard, indexOfLastCard);
-  
-    const totalPages = Math.ceil(cardData.length / cardsPerPage);
-  
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  
-    const goToPreviousPage = () => {
-      if (currentPage !== 1) {
-        setCurrentPage(currentPage - 1);
-      }
-    };
-  
-    const goToNextPage = () => {
-      if (currentPage !== totalPages) {
-        setCurrentPage(currentPage + 1);
-      }
-    };
-  
-    useEffect(() => {
-      if (currentPage > totalPages) {
-        setCurrentPage(totalPages || 1);
-      }
-    }, [cardData, currentPage, totalPages]);
+  useEffect(() => {
+    if (user && user.user && user.user.idUser) {
+      getDocumentsByUser(user.user.idUser);
+    }
+  }, [getDocumentsByUser, user]);
 
   return (
     <div>
-      <Navbar setShowMobileSidebar={setShowMobileSidebar} />
+      <Navbar 
+        setShowMobileSidebar={setShowMobileSidebar}
+        onSearch={handleSearch}
+      />
 
-      {/* Main content with left sidebar */}
       <div className='flex flex-col md:flex-row relative'>
         <Sidebar 
           showMobileSidebar={showMobileSidebar}
           setShowMobileSidebar={setShowMobileSidebar}
-          selectedFaculties={selectedFaculties}
-          setSelectedFaculties={setSelectedFaculties}
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-          selectedYears={selectedYears}
-          setSelectedYears={setSelectedYears}
-          selectedFormats={selectedFormats}
-          setSelectedFormats={setSelectedFormats}
-          selectedLanguages={selectedLanguages}
-          setSelectedLanguages={setSelectedLanguages}
+          onFilterChange={handleFilterChange}
         />
         
-        {/* Main content area */}
         <div className='flex-1 p-4 flex flex-col'>
-          {/* Cards container with optimized height */}
-          <div className='flex-1'>
-            <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-              {currentCards.map(card => (
-                <Card 
-                  key={card.id}
-                  title={card.title}
-                  author={card.author}
-                  date={card.date}
-                  category={card.category}
-                  imageUrl={card.imageUrl}
-                />
-              ))}
+          {/* Mostrar el término de búsqueda si existe */}
+          {searchTerm && (
+            <div className="mb-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-medium">
+                  Resultados para: <span className="text-[#003DA5]">"{searchTerm}"</span>
+                </h2>
+                <button 
+                  className="text-sm text-red-600 hover:text-red-800 underline"
+                  onClick={() => setSearchTerm("")}
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
             </div>
+          )}
+          
+          {/* Mostrar filtros activos como chips */}
+          {(activeFilters.faculties.length > 0 || 
+            activeFilters.careers.length > 0 || 
+            activeFilters.categories.length > 0 ||
+            activeFilters.years.length > 0) && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {/* Similar a HomePage... */}
+              <button 
+                className="text-sm text-red-600 hover:text-red-800 underline"
+                onClick={() => handleFilterChange({
+                  faculties: [],
+                  careers: [],
+                  categories: [],
+                  years: []
+                })}
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+          
+          <div className='flex-1'>
+            {loading ? (
+              <div className="text-center py-10">
+                <h2 className="text-2xl font-semibold text-gray-600">Cargando documentos...</h2>
+              </div>
+            ) : filteredDocuments.length === 0 ? (
+              <div className="text-center py-10">
+                <h2 className="text-2xl font-semibold text-gray-600">No hay documentos disponibles</h2>
+                {(activeFilters.faculties.length > 0 || 
+                  activeFilters.careers.length > 0 || 
+                  activeFilters.categories.length > 0 ||
+                  activeFilters.years.length > 0) && (
+                  <p className="text-gray-500 mt-2">No se encontraron documentos con los filtros seleccionados</p>
+                )}
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+                {currentCards.map(card => (
+                  <Card 
+                    key={card.idResource}
+                    title={card.title}
+                    author={card.idDirector}
+                    date={card.datePublication}
+                    category={card.idCategory}
+                    imageUrl={card.imageUrl}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           
-          {/* Pagination - positioned closer to the cards */}
-          <div className="py-4 mt-2">
-            <div className="flex justify-center">
-              <nav className="flex items-center">
-                {/* Botón anterior */}
-                <button 
-                  onClick={goToPreviousPage} 
-                  disabled={currentPage === 1}
-                  className={`mx-1 px-4 py-2 rounded-md ${
-                    currentPage === 1 
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  &laquo;
-                </button>
-                
-                {/* Números de página */}
-                <div className="flex mx-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                    <button
-                      key={number}
-                      onClick={() => paginate(number)}
-                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
-                        currentPage === number
-                          ? 'bg-[#003DA5] text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {number}
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Botón siguiente */}
-                <button 
-                  onClick={goToNextPage} 
-                  disabled={currentPage === totalPages}
-                  className={`mx-1 px-4 py-2 rounded-md ${
-                    currentPage === totalPages 
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  &raquo;
-                </button>
-              </nav>
+          {filteredDocuments.length > 0 && (
+            <div className="py-4 mt-2">
+              <div className="flex justify-center">
+                <nav className="flex items-center">
+                  <button 
+                    onClick={goToPreviousPage} 
+                    disabled={currentPage === 1}
+                    className={`mx-1 px-4 py-2 rounded-md ${
+                      currentPage === 1 
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    &laquo;
+                  </button>
+                  
+                  <div className="flex mx-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                      <button
+                        key={number}
+                        onClick={() => paginate(number)}
+                        className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                          currentPage === number
+                            ? 'bg-[#003DA5] text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {number}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    onClick={goToNextPage} 
+                    disabled={currentPage === totalPages}
+                    className={`mx-1 px-4 py-2 rounded-md ${
+                      currentPage === totalPages 
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    &raquo;
+                  </button>
+                </nav>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

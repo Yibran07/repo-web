@@ -1,22 +1,29 @@
 import { useNavigate, Link } from 'react-router';
-import { useForm } from "react-hook-form"
-import { useEffect } from 'react';
+import { useForm } from "react-hook-form";
+import { toast } from 'react-toastify';
 
-import {useAuth} from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function RegisterPage() {
   const {register, handleSubmit, formState: {errors}} = useForm();
-  const {singup, isAuthenticated, errors: registerErrors} = useAuth();
+  const {singup, errors: registerErrors} = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if(isAuthenticated) {
-      navigate('/documents');
+  const onSubmit = handleSubmit(async (values) => {
+    const res = await singup(values);
+    if(res && res.success) {
+      toast.success('¡Registro completado con éxito! Ahora puedes iniciar sesión.', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        toastId: 'register-success'
+      });
+      navigate('/login');
     }
-  }, [isAuthenticated])
-
-  const onSubmit = handleSubmit( async (values) => {
-    singup(values);
   })
 
   return (
@@ -25,11 +32,16 @@ export default function RegisterPage() {
       style={{
         backgroundImage: "url('/src/assets/images/escritorioLogin.jpg')"
       }}
-    >
-      
-      {/* Card del formulario */}
+    >      
       <div className="relative z-10 max-w-md w-full bg-white p-8 rounded-lg shadow-xl">
-        <h1 className="text-2xl font-bold mb-2">Registro</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold mb-2">Registro</h1>
+          <Link 
+            className='bg-[#003DA5] text-white border-2 border-[#003DA5] px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 whitespace-nowrap'
+            to="/"
+            >Inicio
+          </Link>
+        </div>
         <p className="text-gray-600 mb-6">¿Ya tienes una cuenta? <Link to="/login" className="text-[#003DA5] cursor-pointer hover:underline">Inicia sesión</Link></p>
         
         {registerErrors.map((error, i) => (
@@ -71,6 +83,7 @@ export default function RegisterPage() {
             <input 
               id="password"
               type="password" 
+              pattern=".{6,}"
               {...register("password", {required: true})} 
               className='w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent'
               placeholder='Ingrese su contraseña'
