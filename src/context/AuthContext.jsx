@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import Cookies from 'js-cookie';
+//import Cookies from 'js-cookie';
 
-import { registerRequest, loginRequest, verifyTokenRequest } from '../api/auth';
+import { registerRequest, loginRequest, verifyTokenRequest, logoutRequest } from '../api/auth';
 
 export const AuthContext = createContext();
 
@@ -57,10 +57,14 @@ export const AuthProvider = ({children}) => {
         }
     }
 
-    const logout = () => {
-        Cookies.remove('token')
-        setUser(null)
-        setIsAuthenticated(false)
+    const logout = async () => {
+        const res = await logoutRequest()
+        if(res.data?.success) {
+            setUser(null)
+            setIsAuthenticated(false)
+        } else {
+            setErrors([{ message: "Error al cerrar sesión" }])
+        }
     }
 
     useEffect(() => {
@@ -74,22 +78,15 @@ export const AuthProvider = ({children}) => {
 
     useEffect(() => {
         const checkLogin = async () => {
-            const cookies = Cookies.get()
-            if(!cookies.token) {
-                setIsAuthenticated(false)
-                setLoading(false)
-                return setUser(null)
-            }
             try{
-                const res = await verifyTokenRequest(cookies.token)
-                if(!res.data){
-                    setIsAuthenticated(false)
-                    setLoading(false)
-                    return
-                }
-                setIsAuthenticated(true)
-                setUser(res.data)
-                setLoading(false)
+                const res = await verifyTokenRequest()
+                if(res.data?.success) {
+                    setUser(res.data.user);
+                    setIsAuthenticated(true);
+                  } else {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                  }            
             }catch(err){
                 console.error(err)
                 setIsAuthenticated(false)
