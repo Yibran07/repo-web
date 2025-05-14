@@ -124,8 +124,8 @@ export default function DocumentsPage() {
   }, [filteredDocuments, currentPage, totalPages]);
 
   useEffect(() => {
-    if (user && user.user && user.user.idUser) {
-      getDocumentsByUser(user.user.idUser);
+    if (user && user.idUser) {
+      getDocumentsByUser(user.idUser);
     }
   }, [getDocumentsByUser, user]);
 

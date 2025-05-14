@@ -47,7 +47,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           isActive: 1,
           idStudent: null,
           idCategory: null,
-          idDirector: user.user.idUser,
+          idDirector: user.idUser,
           idRevisor1: null,
           idRevisor2: null,
         });
@@ -59,7 +59,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
       setLoading(true);
       console.log(data);
       const rescre = await createDocument(data);
-      await createDocumentByUser(user.user.idUser, rescre.data.resource.idResource);
+      await createDocumentByUser(user.idUser, rescre.data.resource.idResource);
       if (rescre && rescre.success) {
         showSuccessToast("Recurso", "creado");
         onClose();
