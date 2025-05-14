@@ -10,7 +10,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log("user de navbar",user);
+  console.log("user de navbar",user.name);
 
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
@@ -83,7 +83,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
             {isAuthenticated ? (
               <>
               <div className="flex items-center justify-end space-x-10">
-                <p className="text-[#FFFFFF80]">Bienvenido: {user.user.name}</p>
+                <p className="text-[#FFFFFF80]">Bienvenido: {user.name}</p>
                 {user.user.rol === "director" && (
                   <button 
                     className='bg-transparent border-2 border-white px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300'
@@ -147,7 +147,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
                   </svg>
                 </button>
 
-                {(isAuthenticated  && (user.user.rol !== 'admin')) && (
+                {(isAuthenticated  && (user.rol !== 'admin')) && (
                   <button 
                     className='bg-transparent border-2 border-white px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 ml-2 whitespace-nowrap text-sm'
                     onClick={handleToggleDocuments}>
@@ -167,7 +167,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
 
               {isAuthenticated ? (
               <div className="flex items-center justify-end space-x-3">
-                <p className="text-sm text-[#FFFFFF80]">Bienvenido: {user.user.name}</p>  
+                <p className="text-sm text-[#FFFFFF80]">Bienvenido: {user.name}</p>  
                 {user.user.rol !== 'admin' && (
                   <button 
                     className='bg-transparent border-2 border-white px-3 py-1 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 text-base' 
