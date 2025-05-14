@@ -81,6 +81,7 @@ export const AuthProvider = ({children}) => {
             try{
                 const res = await verifyTokenRequest()
                 if(res.data?.success) {
+                    console.log(res.data)
                     setUser(res.data.user);
                     setIsAuthenticated(true);
                   } else {
