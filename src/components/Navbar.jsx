@@ -10,6 +10,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  console.log("user de navbar",user);
 
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
