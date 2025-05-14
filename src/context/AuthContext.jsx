@@ -1,19 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
 
-import {
-    registerRequest,
-    loginRequest,
-    verifyTokenRequest,
-} from "../api/auth";
+import { registerRequest, loginRequest, verifyTokenRequest } from '../api/auth';
 
 export const AuthContext = createContext();
 
 export const useAuth = () => {
-    const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error("useAuth must be inside AuthProvider");
-    return ctx;
-};
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider')
+    }
+    return context;
+}
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
@@ -41,7 +39,7 @@ export const AuthProvider = ({ children }) => {
                 error: err
             }
         }
-    };
+    }
 
     const signin = async (user) => {
         try {
@@ -60,12 +58,11 @@ export const AuthProvider = ({ children }) => {
     }
 
     const logout = () => {
-        Cookies.remove("token");
-        setUser(null);
-        setIsAuthenticated(false);
-    };
+        Cookies.remove('token')
+        setUser(null)
+        setIsAuthenticated(false)
+    }
 
-    // Limpia errores tras 5s
     useEffect(() => {
         if (errors.length > 0) {
             const timer = setTimeout(() => {
@@ -99,12 +96,13 @@ export const AuthProvider = ({ children }) => {
                 setUser(null)
                 setLoading(false)
             }
-        })();
-}, []);
+        }
+        checkLogin()
+    }, [])
 
-return (
-    <AuthContext.Provider value={{ singup, signin, logout, user, isAuthenticated, errors, loading }}>
-        {children}
-    </AuthContext.Provider>
-);
-};
+    return (
+        <AuthContext.Provider value={{ singup, signin, logout, user, isAuthenticated, errors, loading }}>
+            {children}
+        </AuthContext.Provider>
+    )
+}
