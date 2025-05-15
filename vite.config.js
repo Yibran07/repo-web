@@ -32,6 +32,7 @@ export default defineConfig(({ mode: configMode }) => {
         // Production build settings
         minify: 'terser',
         sourcemap: false,
+        assetsInclude: ['**/*.svg', '**/*.png', '**/*.jpg', '**/*.jpeg'],
       }
     })
   }

@@ -24,7 +24,7 @@ export default function LoginPage() {
     <div 
       className="flex items-center justify-center min-h-screen w-full bg-cover bg-center"
       style={{
-        backgroundImage: "url('/src/assets/images/escritorioLogin.jpg')"
+        backgroundImage: "url('/images/escritorioLogin.jpg')"
       }}
     >
       {/* Card del formulario */}
@@ -37,7 +37,7 @@ export default function LoginPage() {
             >Inicio
           </Link>        
         </div>
-          <p className="text-gray-600 mb-6">¿No eres un miembro? <Link to="/register" className="text-[#003DA5] cursor-pointer hover:underline">Registrate</Link></p>
+          {/*<p className="text-gray-600 mb-6">¿No eres un miembro? <Link to="/register" className="text-[#003DA5] cursor-pointer hover:underline">Registrate</Link></p>*/}
 
         {siginErrors.map((error, i) => (
           <div key={i} className='bg-red-500 p-2 text-white text-center'>

@@ -72,7 +72,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
           <div className='hidden md:flex md:flex-row items-center justify-between'>
             <div className='flex items-center'>
               <div className='mr-4'>
-                <img src="/src/assets/images/logo.jpg" alt="Logo" className="h-15 w-15 rounded-md" />
+                <img src="/images/logo.jpg" alt="Logo" className="h-15 w-15 rounded-md" />
               </div>
               <div className='text-left'>
                 <div className='font-bold text-xl'>Repositorio Digital de Trabajos de Titulación</div>
@@ -119,7 +119,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
           <div className='flex flex-col md:hidden'>
             <div className='flex items-center mb-4'>
               <div className='mr-4'>
-                <img src="/src/assets/images/logo.jpg" alt="Logo" className="h-10 rounded-md" />
+                <img src="/images/logo.jpg" alt="Logo" className="h-10 rounded-md" />
               </div>
               <div className='text-left'>
                 <div className='font-bold text-sm'>Repositorio Digital de Trabajos de Titulación</div>

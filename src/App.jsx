@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import RegisterPage from "./pages/RegisterPage";
+//import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import DocumentsPage from "./pages/DocumentsPage";
@@ -49,7 +49,7 @@ export default function App() {
                       <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/login" element={<LoginPage/>} />
-                        <Route path="/register" element={<RegisterPage/>} />
+                        {/* <Route path="/register" element={<RegisterPage/>} /> */}
                         <Route path="/unauthorized" element={<UnauthorizedPage/>} />
 
                         <Route element={<ProtectedRoute allowedRoles={["user", "director", "revisor"]}/>}>
