@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-import { showSuccessToast } from "../util/toastUtils";
+import { showSuccessToast, showErrorToast } from "../util/toastUtils";
 
 import { useCategory } from "../context/CategoryContext";
 
@@ -39,11 +39,15 @@ const CategoryFormModal = ({ isOpen, onClose, category }) => {
         result = await createCategory(category);
         if (result && result.success) {
           showSuccessToast("Categoría", "creada");
+        }else{
+          showErrorToast("Error al crear la Categoria")
         }
       }else{
-        await updateCategory(category.idCategory, category);
+        result = await updateCategory(category.idCategory, category);
         if (result && result.success) {
           showSuccessToast("Categoría", "actualizada");
+        }else{
+          showErrorToast("Error al actualizar la Categoria")
         }
       }
       

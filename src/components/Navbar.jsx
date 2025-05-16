@@ -10,7 +10,6 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log("user de navbar",user);
 
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
@@ -48,7 +47,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
     { path: '/categories', label: 'Categorias', documentLabel: 'Documentos' },
     { path: '/faculties', label: 'Facultades', documentLabel: 'Documentos' },
     { path: '/careers', label: 'Carreras', documentLabel: 'Documentos' },
-    { path: '/reviewers', label: 'Revisores y Directores', documentLabel: 'Documentos' },
+    { path: '/reviewers', label: 'Usuarios', documentLabel: 'Documentos' },
     { path: '/students', label: 'Estudiantes', documentLabel: 'Documentos' }
   ];
 
@@ -62,6 +61,11 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
     } else {
       navigate(route.path);
     }
+  };
+
+  // Función para determinar si un botón está activo
+  const isActiveRoute = (path) => {
+    return location.pathname === path;
   };
 
   return (
@@ -240,7 +244,11 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
                 <button 
                   key={route.path}
                   onClick={() => handleAdminNavigation(route)}
-                  className='bg-[#003DA5] text-white border-2 border-[#003DA5] px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 whitespace-nowrap'
+                  className={`${
+                    isActiveRoute(route.path) 
+                      ? 'bg-white text-[#003DA5]' 
+                      : 'bg-[#003DA5] text-white hover:bg-white hover:text-[#003DA5]'
+                  } border-2 border-[#003DA5] px-4 py-2 rounded font-bold transition duration-300 whitespace-nowrap`}
                 >
                   {getButtonText(route)}
                 </button>
@@ -255,7 +263,11 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
                 <button 
                   key={route.path}
                   onClick={() => handleAdminNavigation(route)}
-                  className='bg-[#003DA5] text-white border-2 text-sm border-[#003DA5] px-3 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 whitespace-nowrap'
+                  className={`${
+                    isActiveRoute(route.path) 
+                      ? 'bg-white text-[#003DA5]' 
+                      : 'bg-[#003DA5] text-white hover:bg-white hover:text-[#003DA5]'
+                  } border-2 text-sm border-[#003DA5] px-3 py-2 rounded font-bold transition duration-300 whitespace-nowrap`}
                 >
                   {getButtonText(route)}
                 </button>

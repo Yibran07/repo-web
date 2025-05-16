@@ -1,7 +1,11 @@
 import { useState } from "react";
+
 import { useFaculty } from "../context/FacultyContext";
+
 import Navbar from '../components/Navbar';
 import FacultyFormModal from "../components/FacultyFormModal";
+
+import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
 export default function FacultiesPage() {
   const { faculties, loading, deleteFaculty } = useFaculty();
@@ -22,6 +26,17 @@ export default function FacultiesPage() {
     setShowModal(false);
     setEditingFaculty(null);
   };
+
+  async function handledelete(idFaculty) {
+    let result;
+
+    result = await deleteFaculty(idFaculty);
+    if (result && result.success) {
+      showSuccessToast("Facultad", "eliminada");
+    }else {
+      showErrorToast("Error al eliminar la facultad.")
+    }
+  }
 
   return (
     <>
@@ -86,7 +101,7 @@ export default function FacultiesPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => deleteFaculty(faculty.idFaculty)}
+                        onClick={() => handledelete(faculty.idFaculty)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar

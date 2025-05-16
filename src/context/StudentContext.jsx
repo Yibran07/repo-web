@@ -36,19 +36,19 @@ export const StudentProvider = ({children}) => {
     }
 
     const getStudents = useCallback(async (forceRefresh = false) => {
-      if (students.length > 0 && !forceRefresh) return students;
-      
-      try {
-        setLoading(true);
-        const res = await getStudentsRequest();
-        setStudents(res.data.students);
-        return res.data.students;
-      } catch(err) {
-        console.error(err);
-        return [];
-      } finally {
-        setLoading(false);
-      }
+        if (students.length > 0 && !forceRefresh) return students;
+        
+        try {
+            setLoading(true);
+            const res = await getStudentsRequest();
+            setStudents(res.data.students);
+            return res.data.students;
+        }catch(err) {
+            console.error(err);
+            return [];
+        }finally {
+            setLoading(false);
+        }
     }, [students.length]);
 
     const updateStudent = async (id, student) => {

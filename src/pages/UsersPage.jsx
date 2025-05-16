@@ -51,7 +51,7 @@ export default function UsersPage() {
             onClick={handleOpenAddModal}
             className="hidden md:flex bg-[#003DA5] text-white px-4 py-2 rounded font-bold hover:bg-blue-700 transition duration-300"
           >
-            Agregar Revisor
+            Agregar Usuario
           </button>
           
           {/* Botón para pantallas pequeñas */}
@@ -59,17 +59,17 @@ export default function UsersPage() {
             onClick={handleOpenAddModal}
             className="md:hidden bg-[#003DA5] rounded font-bold text-white text-sm px-4 py-2 flex items-center justify-center hover:bg-blue-700 transition duration-300 shadow-lg"
           >
-            Agregar Revisor
+            Agregar Usuario
           </button>
         </div>
 
         {loading ? (
           <div className="text-center py-10">
-            <h2 className="text-2xl font-semibold text-gray-600">Cargando revisores...</h2>
+            <h2 className="text-2xl font-semibold text-gray-600">Cargando usuarios...</h2>
           </div>
         ) : user.length === 0 ? (
           <div className="text-center py-10">
-            <h2 className="text-2xl font-semibold text-gray-600">No hay revisores disponibles</h2>
+            <h2 className="text-2xl font-semibold text-gray-600">No hay usuarios disponibles</h2>
           </div>
         ) : (
           <div className="overflow-x-auto bg-white rounded-lg shadow">

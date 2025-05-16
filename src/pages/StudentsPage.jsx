@@ -6,6 +6,8 @@ import StudentFormModal from './../components/StudentFormModal';
 import { useStudent } from "../context/StudentContext";
 import { useCareer } from "../context/CareerContext";
 
+import { showErrorToast, showSuccessToast } from "../util/toastUtils";
+
 export default function StudentsPage() {
   const { students, loading, deleteStudent } = useStudent();
   const [showModal, setShowModal] = useState(false);
@@ -26,6 +28,17 @@ export default function StudentsPage() {
     setShowModal(false);
     setEditingStudent(null);
   };
+
+  async function handledelete(idStudent) {
+    let result;
+
+    result = await deleteStudent(idStudent);
+    if (result && result.success) {
+      showSuccessToast("Estudiante", "eliminado");
+    }else {
+      showErrorToast("Error al eliminar el estudiante.")
+    }
+  }
 
   return (
     <>
@@ -102,7 +115,7 @@ export default function StudentsPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => deleteStudent(student.idStudent)}
+                        onClick={() => handledelete(student.idStudent)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar

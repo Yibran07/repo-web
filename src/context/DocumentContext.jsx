@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest } from "../api/document";
+import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest } from "../api/documents";
 
 const DocumentContext = createContext();
 

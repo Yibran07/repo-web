@@ -6,6 +6,8 @@ import CareerFormModal from './../components/CareerFormModal';
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
+import { showErrorToast, showSuccessToast } from "../util/toastUtils";
+
 export default function CareersPage() {
   const { careers, loading, deleteCareer } = useCareer();
   const { faculties } = useFaculty();
@@ -26,6 +28,17 @@ export default function CareersPage() {
     setShowModal(false);
     setEditingCareer(null);
   };
+
+    async function handledelete(idCareer) {
+    let result;
+
+    result = await deleteCareer(idCareer);
+    if (result && result.success) {
+      showSuccessToast("Carrera", "eliminada");
+    }else {
+      showErrorToast("Error al eliminar la carrera.")
+    }
+  }
 
   return (
     <>
@@ -97,7 +110,7 @@ export default function CareersPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => deleteCareer(career.idCareer)}
+                        onClick={() => handledelete(career.idCareer)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar

@@ -44,7 +44,7 @@ export const AuthProvider = ({children}) => {
     const signin = async (user) => {
         try{
             const res = await loginRequest(user);
-            setUser(res.data); 
+            setUser(res.data.user); 
             setIsAuthenticated(true);
         }catch(err){
             if (err.response.data.errors) {
@@ -81,7 +81,6 @@ export const AuthProvider = ({children}) => {
             try{
                 const res = await verifyTokenRequest()
                 if(res.data?.success) {
-                    console.log("user de authcontext",res.data.user)
                     setUser(res.data.user);
                     setIsAuthenticated(true);
                   } else {
@@ -92,6 +91,9 @@ export const AuthProvider = ({children}) => {
                 console.error(err)
                 setIsAuthenticated(false)
                 setUser(null)
+                setLoading(false)
+            }
+            finally{
                 setLoading(false)
             }
         }

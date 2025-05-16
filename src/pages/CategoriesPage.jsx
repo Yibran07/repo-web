@@ -1,7 +1,11 @@
 import { useState } from "react";
+
 import { useCategory } from "../context/CategoryContext";
+
 import Navbar from './../components/Navbar';
 import CategoryFormModal from "../components/CategoryFormModal";
+
+import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
 export default function CategoriesPage() {
   const { categories, loading, deleteCategory } = useCategory();
@@ -22,6 +26,17 @@ export default function CategoriesPage() {
     setShowModal(false);
     setEditingCategory(null);
   };
+
+    async function handledelete(idCategory) {
+    let result;
+
+    result = await deleteCategory(idCategory);
+    if (result && result.success) {
+      showSuccessToast("Categoria", "eliminada");
+    }else {
+      showErrorToast("Error al eliminar la categoria.")
+    }
+  }
 
   return (
     <>
@@ -93,7 +108,7 @@ export default function CategoriesPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => deleteCategory(category.idCategory)}
+                        onClick={() => handledelete(category.idCategory)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
