@@ -4,6 +4,7 @@ import { useCategory } from "../context/CategoryContext";
 
 import Navbar from './../components/Navbar';
 import CategoryFormModal from "../components/CategoryFormModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
@@ -11,6 +12,8 @@ export default function CategoriesPage() {
   const { categories, loading, deleteCategory } = useCategory();
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const handleOpenAddModal = () => {
     setEditingCategory(null);
@@ -27,16 +30,30 @@ export default function CategoriesPage() {
     setEditingCategory(null);
   };
 
-    async function handledelete(idCategory) {
-    let result;
+  // Función para mostrar el modal de confirmación
+  const handleDeleteConfirmation = (idCategory) => {
+    setCategoryToDelete(idCategory);
+    setShowDeleteModal(true);
+  };
 
-    result = await deleteCategory(idCategory);
-    if (result && result.success) {
-      showSuccessToast("Categoria", "eliminada");
-    }else {
-      showErrorToast("Error al eliminar la categoria.")
+  // Función para eliminar después de la confirmación
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+    
+    try {
+      const result = await deleteCategory(categoryToDelete);
+      if (result && result.success) {
+        showSuccessToast("Categoría", "eliminada");
+      } else {
+        showErrorToast("Error al eliminar la categoría");
+      }
+    } catch (error) {
+      console.error("Error al eliminar categoría:", error);
+      showErrorToast("Error al eliminar la categoría");
+    } finally {
+      setCategoryToDelete(null);
     }
-  }
+  };
 
   return (
     <>
@@ -108,7 +125,7 @@ export default function CategoriesPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handledelete(category.idCategory)}
+                        onClick={() => handleDeleteConfirmation(category.idCategory)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -129,6 +146,16 @@ export default function CategoriesPage() {
           category={editingCategory}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar categoría"
+        message="¿Estás seguro de que deseas eliminar esta categoría? Esta acción podría afectar a los documentos asociados."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </>
   );
 }

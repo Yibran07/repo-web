@@ -37,6 +37,7 @@ const CategoryFormModal = ({ isOpen, onClose, category }) => {
       
       if (!isEditing) {
         result = await createCategory(category);
+        console.log(result);
         if (result && result.success) {
           showSuccessToast("Categoría", "creada");
         }else{

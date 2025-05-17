@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Navbar from './../components/Navbar';
 import UserFormModal from "../components/UserFormModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 import { useUser } from "../context/UserContext";
 
@@ -11,6 +12,8 @@ export default function UsersPage() {
   const { users, loading, deleteUser } = useUser();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const handleOpenAddModal = () => {
     setEditingUser(null);
@@ -27,19 +30,33 @@ export default function UsersPage() {
     setEditingUser(null);
   };
 
+  // Función para mostrar el modal de confirmación
+  const handleDeleteConfirmation = (idUser) => {
+    setUserToDelete(idUser);
+    setShowDeleteModal(true);
+  };
+
+  // Función para eliminar después de la confirmación
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      const result = await deleteUser(userToDelete);
+      if (result && result.success) {
+        showSuccessToast("Usuario", "eliminado");
+      } else {
+        showErrorToast("Error al eliminar el usuario");
+      }
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      showErrorToast("Error al eliminar el usuario");
+    } finally {
+      setUserToDelete(null);
+    }
+  };
+
   const user = users.filter(user => user.rol === "user" || user.rol === "revisor" || user.rol === "director");
 
-
-  async function handledelete(idUser) {
-    let result;
-
-    result = await deleteUser(idUser);
-    if (result && result.success) {
-      showSuccessToast("Usuario", "eliminado");
-    }else {
-      showErrorToast("Error al eliminar el usuario.")
-    }
-  }
 
   return (
     <>
@@ -122,7 +139,7 @@ export default function UsersPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handledelete(user.idUser)}
+                        onClick={() => handleDeleteConfirmation(user.idUser)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -143,6 +160,16 @@ export default function UsersPage() {
           user={editingUser}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar usuario"
+        message="¿Estás seguro de que deseas eliminar este usuario? Esta acción podría afectar a los documentos asociados."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </>
   );
 }

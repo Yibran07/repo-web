@@ -20,6 +20,10 @@ export const CareerProvider = ({children}) => {
             setLoading(true);
             const res = await createCareerRequest(career);
             setCareers(prevCareers => [...prevCareers, res.data.career]);
+            return {
+                success: true,
+                data: res.data
+            }
         }catch(err) {
             console.error(err);
             return {

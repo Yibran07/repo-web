@@ -1,7 +1,8 @@
 import { useState } from "react";
 
-import Navbar from '../components/Navbar';
-import StudentFormModal from './../components/StudentFormModal';
+import Navbar from './../components/Navbar';
+import StudentFormModal from "../components/StudentFormModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 import { useStudent } from "../context/StudentContext";
 import { useCareer } from "../context/CareerContext";
@@ -10,9 +11,11 @@ import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
 export default function StudentsPage() {
   const { students, loading, deleteStudent } = useStudent();
+  const { careers } = useCareer();
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const { careers } = useCareer();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
 
   const handleOpenAddModal = () => {
     setEditingStudent(null);
@@ -29,16 +32,30 @@ export default function StudentsPage() {
     setEditingStudent(null);
   };
 
-  async function handledelete(idStudent) {
-    let result;
+  // Función para mostrar el modal de confirmación
+  const handleDeleteConfirmation = (idStudent) => {
+    setStudentToDelete(idStudent);
+    setShowDeleteModal(true);
+  };
 
-    result = await deleteStudent(idStudent);
-    if (result && result.success) {
-      showSuccessToast("Estudiante", "eliminado");
-    }else {
-      showErrorToast("Error al eliminar el estudiante.")
+  // Función para eliminar después de la confirmación
+  const handleDelete = async () => {
+    if (!studentToDelete) return;
+    
+    try {
+      const result = await deleteStudent(studentToDelete);
+      if (result && result.success) {
+        showSuccessToast("Estudiante", "eliminado");
+      } else {
+        showErrorToast("Error al eliminar el estudiante");
+      }
+    } catch (error) {
+      console.error("Error al eliminar estudiante:", error);
+      showErrorToast("Error al eliminar el estudiante");
+    } finally {
+      setStudentToDelete(null);
     }
-  }
+  };
 
   return (
     <>
@@ -115,7 +132,7 @@ export default function StudentsPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handledelete(student.idStudent)}
+                        onClick={() => handleDeleteConfirmation(student.idStudent)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -136,6 +153,16 @@ export default function StudentsPage() {
           student={editingStudent}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar estudiante"
+        message="¿Estás seguro de que deseas eliminar este estudiante? Esta acción podría afectar a los documentos asociados."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </>
   );
 }

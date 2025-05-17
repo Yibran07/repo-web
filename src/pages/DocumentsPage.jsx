@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
+import DocumentFormModal from '../components/DocumentFormModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 import { useDocuments } from "../context/DocumentContext";
 import { useAuth } from '../context/AuthContext';
@@ -22,8 +24,12 @@ export default function DocumentsPage() {
     years: []
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
 
-  const { getDocumentsByUser, documents, loading } = useDocuments();
+  const { getDocumentsByUser, documents, loading, deleteDocument } = useDocuments();
   const { user } = useAuth();
   const { students } = useStudent();
   const { users } = useUser();
@@ -131,6 +137,54 @@ export default function DocumentsPage() {
     }
   }, [getDocumentsByUser, user]);
 
+  // Función para editar un documento
+  const handleEditDocument = (docId) => {
+    const document = filteredDocuments.find(doc => doc.idResource === docId);
+    if (document) {
+      setSelectedDocument(document);
+      setShowEditModal(true);
+    }
+  };
+
+  // Función para mostrar el modal de confirmación de eliminación
+  const handleDeleteConfirmation = (docId) => {
+    setDocumentToDelete(docId);
+    setShowDeleteModal(true);
+  };
+
+  // Función para eliminar un documento después de la confirmación
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
+    
+    try {
+      const result = await deleteDocument(documentToDelete);
+      if (result && result.success) {
+        showSuccessToast("Documento eliminado exitosamente");
+        // Refrescar la lista de documentos
+        if (user && user.idUser) {
+          getDocumentsByUser(user.idUser);
+        }
+      } else {
+        showErrorToast(result?.message || "Error al eliminar el documento");
+      }
+    } catch (error) {
+      console.error("Error al eliminar documento:", error);
+      showErrorToast("Error al eliminar el documento");
+    } finally {
+      setDocumentToDelete(null);
+    }
+  };
+
+  // Función para cerrar el modal de edición
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedDocument(null);
+    // Refrescar la lista de documentos
+    if (user && user.idUser) {
+      getDocumentsByUser(user.idUser);
+    }
+  };
+
   return (
     <div>
       <Navbar 
@@ -204,11 +258,15 @@ export default function DocumentsPage() {
                 {currentCards.map(card => (
                   <Card 
                     key={card.idResource}
+                    idResource={card.idResource}
                     title={card.title}
                     author={card.idDirector}
                     date={card.datePublication}
                     category={card.idCategory}
-                    imageUrl={card.imageUrl}
+                    imageUrl={card.imageUrl || "/images/placeholder.jpg"}
+                    onEdit={handleEditDocument}
+                    onDelete={handleDeleteConfirmation}
+                    isUserDocument={user && user.idUser === card.idDirector}
                   />
                 ))}
               </div>
@@ -264,6 +322,24 @@ export default function DocumentsPage() {
           )}
         </div>
       </div>
+
+      {showEditModal && (
+        <DocumentFormModal 
+          isOpen={showEditModal} 
+          onClose={handleCloseEditModal} 
+          document={selectedDocument} 
+        />
+      )}
+      
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteDocument}
+        title="Eliminar documento"
+        message="¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </div>
   )
 }

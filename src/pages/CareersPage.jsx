@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Navbar from './../components/Navbar';
 import CareerFormModal from './../components/CareerFormModal';
+import ConfirmationModal from './../components/ConfirmationModal';
 
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
@@ -13,6 +14,8 @@ export default function CareersPage() {
   const { faculties } = useFaculty();
   const [showModal, setShowModal] = useState(false);
   const [editingCareer, setEditingCareer] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [careerToDelete, setCareerToDelete] = useState(null);
 
   const handleOpenAddModal = () => {
     setEditingCareer(null);
@@ -29,16 +32,28 @@ export default function CareersPage() {
     setEditingCareer(null);
   };
 
-    async function handledelete(idCareer) {
-    let result;
+  const handleDeleteConfirmation = (idCareer) => {
+    setCareerToDelete(idCareer);
+    setShowDeleteModal(true);
+  };
 
-    result = await deleteCareer(idCareer);
-    if (result && result.success) {
-      showSuccessToast("Carrera", "eliminada");
-    }else {
-      showErrorToast("Error al eliminar la carrera.")
+  const handleDelete = async () => {
+    if (!careerToDelete) return;
+    
+    try {
+      const result = await deleteCareer(careerToDelete);
+      if (result && result.success) {
+        showSuccessToast("Carrera", "eliminada");
+      } else {
+        showErrorToast("Error al eliminar la carrera");
+      }
+    } catch (error) {
+      console.error("Error al eliminar carrera:", error);
+      showErrorToast("Error al eliminar la carrera");
+    } finally {
+      setCareerToDelete(null);
     }
-  }
+  };
 
   return (
     <>
@@ -110,7 +125,7 @@ export default function CareersPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handledelete(career.idCareer)}
+                        onClick={() => handleDeleteConfirmation(career.idCareer)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -131,6 +146,16 @@ export default function CareersPage() {
           career={editingCareer}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar carrera"
+        message="¿Estás seguro de que deseas eliminar esta carrera? Esta acción podría afectar a los estudiantes asociados."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useFaculty } from "../context/FacultyContext";
 
 import Navbar from '../components/Navbar';
 import FacultyFormModal from "../components/FacultyFormModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
@@ -11,6 +12,8 @@ export default function FacultiesPage() {
   const { faculties, loading, deleteFaculty } = useFaculty();
   const [showModal, setShowModal] = useState(false);
   const [editingFaculty, setEditingFaculty] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [facultyToDelete, setFacultyToDelete] = useState(null);
 
   const handleOpenAddModal = () => {
     setEditingFaculty(null);
@@ -27,16 +30,30 @@ export default function FacultiesPage() {
     setEditingFaculty(null);
   };
 
-  async function handledelete(idFaculty) {
-    let result;
+  // Función para mostrar el modal de confirmación
+  const handleDeleteConfirmation = (idFaculty) => {
+    setFacultyToDelete(idFaculty);
+    setShowDeleteModal(true);
+  };
 
-    result = await deleteFaculty(idFaculty);
-    if (result && result.success) {
-      showSuccessToast("Facultad", "eliminada");
-    }else {
-      showErrorToast("Error al eliminar la facultad.")
+  // Función para eliminar después de la confirmación
+  const handleDelete = async () => {
+    if (!facultyToDelete) return;
+    
+    try {
+      const result = await deleteFaculty(facultyToDelete);
+      if (result && result.success) {
+        showSuccessToast("Facultad", "eliminada");
+      } else {
+        showErrorToast("Error al eliminar la facultad.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar facultad:", error);
+      showErrorToast("Error al eliminar la facultad");
+    } finally {
+      setFacultyToDelete(null);
     }
-  }
+  };
 
   return (
     <>
@@ -101,7 +118,7 @@ export default function FacultiesPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handledelete(faculty.idFaculty)}
+                        onClick={() => handleDeleteConfirmation(faculty.idFaculty)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -122,6 +139,16 @@ export default function FacultiesPage() {
           faculty={editingFaculty}
         />
       )}
+      
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Eliminar facultad"
+        message="¿Estás seguro de que deseas eliminar esta facultad? Esta acción podría afectar a las carreras asociadas."
+        confirmButtonText="Eliminar"
+        confirmButtonColor="red"
+      />
     </>
   );
 }
