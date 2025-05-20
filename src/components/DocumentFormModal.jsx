@@ -57,17 +57,35 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
-      console.log(data);
-      const rescre = await createDocument(data);
-      await createDocumentByUser(user.idUser, rescre.data.resource.idResource);
+      
+      // Ensure we have valid File objects
+      if (!data.file || !data.file[0] || !data.image || !data.image[0]) {
+        showErrorToast("Por favor selecciona ambos archivos: documento principal e imagen de portada");
+        setLoading(false);
+        return;
+      }
+      
+      // Create a new data object with File objects instead of FileLists
+      const formData = {
+        ...data,
+        file: data.file[0],   // Extract the File from FileList
+        image: data.image[0]  // Extract the File from FileList
+      };
+      
+      console.log("Enviando formData:", formData);
+      const rescre = await createDocument(formData);
+      
       if (rescre && rescre.success) {
+        // Only create document-user relation if resource was created successfully
+        await createDocumentByUser(user.idUser, rescre.data.resource.idResource);
         showSuccessToast("Recurso", "creado");
         onClose();
-      }else{
+      } else {
         showErrorToast("Error al crear el Recurso");
       }
     } catch(err) {
-      console.error(err);
+      console.error("Error completo:", err);
+      showErrorToast(err.response?.data?.message || "Error al crear el Recurso");
     } finally {
       setLoading(false);
     }

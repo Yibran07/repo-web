@@ -39,7 +39,6 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
 
       if (!isEditing) {
         result = await createCareer(career);
-        console.log(result);
         if (result && result.success) {
           showSuccessToast("Carrera", "creada");
         }else{

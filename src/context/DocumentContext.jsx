@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest } from "../api/documents";
+import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest, getDocumentRequest } from "../api/documents";
 
 const DocumentContext = createContext();
 
@@ -129,6 +129,25 @@ export function DocumentProvider({ children }) {
       }
     }
 
+    const getDocument = async (id, includeFile = false) => {
+      try {
+        setLoading(true);
+        const res = await getDocumentRequest(id, includeFile);
+        return {
+          success: true,
+          data: res.data
+        };
+      } catch (error) {
+        console.error("Error fetching document:", error);
+        return {
+          success: false,
+          message: error.response?.data?.message || "Error al obtener el documento"
+        };
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
         <DocumentContext.Provider value={{
           documents,
@@ -138,7 +157,8 @@ export function DocumentProvider({ children }) {
           updateDocument,
           deleteDocument,
           getDocumentsByUser,
-          createDocumentByUser
+          createDocumentByUser,
+          getDocument, // Add this function to the context
         }}>
           {children}
         </DocumentContext.Provider>

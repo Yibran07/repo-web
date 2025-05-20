@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
 import DocumentFormModal from '../components/DocumentFormModal';
+import DocumentDetailModal from '../components/DocumentDetailModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 import { useDocuments } from "../context/DocumentContext";
@@ -28,12 +29,15 @@ export default function DocumentsPage() {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
 
   const { getDocumentsByUser, documents, loading, deleteDocument } = useDocuments();
   const { user } = useAuth();
   const { students } = useStudent();
   const { users } = useUser();
   const allDocuments = documents?.resources || [];
+  console.log("selectDocument",selectedDocumentId)
   
   // Función para manejar la búsqueda desde el navbar
   const handleSearch = (term) => {
@@ -179,10 +183,20 @@ export default function DocumentsPage() {
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setSelectedDocument(null);
-    // Refrescar la lista de documentos
-    if (user && user.idUser) {
-      getDocumentsByUser(user.idUser);
-    }
+  };
+
+  // Función para manejar el clic en una card
+  const handleCardClick = (docId) => {
+    console.log("Card clicked in DocumentsPage:", docId);
+    setSelectedDocumentId(docId);
+    setShowDetailModal(true);
+    console.log("Modal state after click:", selectedDocumentId, showDetailModal);
+  };
+
+  // Función para cerrar el modal de detalles
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedDocumentId(null);
   };
 
   return (
@@ -263,10 +277,11 @@ export default function DocumentsPage() {
                     author={card.idDirector}
                     date={card.datePublication}
                     category={card.idCategory}
-                    imageUrl={card.imageUrl || "/images/placeholder.jpg"}
+                    imageUrl={card.tempImageUrl || "/images/placeholder.jpg"}
                     onEdit={handleEditDocument}
                     onDelete={handleDeleteConfirmation}
                     isUserDocument={user && user.idUser === card.idDirector}
+                    onClick={handleCardClick(card.idResource)}  // Pass the function directly without wrapping in an arrow function
                   />
                 ))}
               </div>
@@ -339,6 +354,12 @@ export default function DocumentsPage() {
         message="¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer."
         confirmButtonText="Eliminar"
         confirmButtonColor="red"
+      />
+
+      <DocumentDetailModal 
+        isOpen={showDetailModal} 
+        onClose={handleCloseDetailModal} 
+        documentId={selectedDocumentId} 
       />
     </div>
   )
