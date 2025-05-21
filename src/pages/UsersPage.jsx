@@ -55,8 +55,6 @@ export default function UsersPage() {
     }
   };
 
-  const user = users.filter(user => user.rol === "user" || user.rol === "revisor" || user.rol === "director");
-
 
   return (
     <>
@@ -84,7 +82,7 @@ export default function UsersPage() {
           <div className="text-center py-10">
             <h2 className="text-2xl font-semibold text-gray-600">Cargando usuarios...</h2>
           </div>
-        ) : user.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="text-center py-10">
             <h2 className="text-2xl font-semibold text-gray-600">No hay usuarios disponibles</h2>
           </div>
@@ -114,7 +112,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {user.map((user) => (
+                {users.map((user) => (
                   <tr key={user.idUser} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.idUser}
@@ -132,18 +130,22 @@ export default function UsersPage() {
                       <span className={`inline-block w-3 h-3 rounded-full ${user.isActive ? "bg-green-500" : "bg-red-500"}`}></span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenEditModal(user)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDeleteConfirmation(user.idUser)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Eliminar
-                      </button>
+                      {user.rol !== "admin" && (
+                        <>
+                          <button
+                            onClick={() => handleOpenEditModal(user)}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConfirmation(user.idUser)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

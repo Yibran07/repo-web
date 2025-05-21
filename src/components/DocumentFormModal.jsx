@@ -12,8 +12,8 @@ import { showSuccessToast, showErrorToast } from "../util/toastUtils";
 
 const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset } = useForm();
-  const { createDocument, createDocumentByUser } = useDocuments();
+  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm();
+  const { createDocument, createDocumentByUser, updateDocument, documentUserRelations } = useDocuments();
   const { user } = useAuth();
   const { categories } = useCategory();
   const { users } = useUser();
@@ -24,74 +24,175 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const buttonText = isEditing ? "Actualizar" : "Guardar";
 
   useEffect(() => {
-      if (document) {
-        reset({
-          idResource: document.idResource,
-          title: document.title,
-          description: document.description,
-          datePublication: document.datePublication.split("T")[0],
-          isActive: document.isActive,
-          filePath: document.filePath,
-          idStudent: document.idStudent,
-          idCategory: document.idCategory,
-          idDirector: document.idDirector,
-          idRevisor1: document.idRevisor1,
-          idRevisor2: document.idRevisor2,
-        });
-      } else {
-        reset({
-          idResource: null,
-          title: "",
-          description: "",
-          datePublication: "",
-          isActive: 1,
-          idStudent: null,
-          idCategory: null,
-          idDirector: user.idUser,
-          idRevisor1: null,
-          idRevisor2: null,
-        });
+    if (document) {
+      // First set the basic document properties
+      reset({
+        idResource: document.idResource,
+        title: document.title,
+        description: document.description,
+        datePublication: document.datePublication.split("T")[0],
+        isActive: document.isActive,
+        filePath: document.filePath,
+        idStudent: document.idStudent,
+        idCategory: document.idCategory,
+        idDirector: document.idDirector
+      });
+
+      // Now find related users if we're editing a document
+      if (isEditing && documentUserRelations && documentUserRelations.length > 0) {
+        const docRelations = documentUserRelations.filter(
+          rel => parseInt(rel.idResource) === parseInt(document.idResource)
+        );
+
+        // If we found relations, look for supervisor and reviewers
+        if (docRelations && docRelations.length > 0) {
+          // Find users with their roles
+          const relatedUsersWithRoles = docRelations.map(rel => {
+            const userId = parseInt(rel.idUser);
+            const relatedUser = users.find(u => u.idUser === userId);
+            return {
+              id: userId,
+              role: relatedUser?.rol || ''
+            };
+          });
+          
+          // Find supervisor
+          const supervisor = relatedUsersWithRoles.find(u => u.role === 'supervisor');
+          if (supervisor) {
+            setValue('idSupervisor', supervisor.id);
+          }
+          
+          // Find reviewers
+          const reviewers = relatedUsersWithRoles.filter(u => u.role === 'revisor');
+          if (reviewers.length >= 1) {
+            setValue('idRevisor1', reviewers[0].id);
+          }
+          if (reviewers.length >= 2) {
+            setValue('idRevisor2', reviewers[1].id);
+          }
+          
+          // Find director (optional - might already be set from document.idDirector)
+          const director = relatedUsersWithRoles.find(u => u.role === 'director');
+          if (director) {
+            setValue('idDirector', director.id);
+          }
+        }
       }
-    }, [document, reset]);
+    } else {
+      // New document - set defaults
+      reset({
+        idResource: null,
+        title: "",
+        description: "",
+        datePublication: "",
+        isActive: 1,
+        idStudent: null,
+        idCategory: null,
+        idDirector: user.idUser,
+        idSupervisor: null,
+        idRevisor1: null,
+        idRevisor2: null,
+      });
+    }
+  }, [document, reset, user, isEditing, documentUserRelations, users, setValue]);
 
   const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
       
-      // Ensure we have valid File objects
-      if (!data.file || !data.file[0] || !data.image || !data.image[0]) {
-        showErrorToast("Por favor selecciona ambos archivos: documento principal e imagen de portada");
-        setLoading(false);
-        return;
-      }
-      
-      // Create a new data object with File objects instead of FileLists
-      const formData = {
-        ...data,
-        file: data.file[0],   // Extract the File from FileList
-        image: data.image[0]  // Extract the File from FileList
-      };
-      
-      console.log("Enviando formData:", formData);
-      const rescre = await createDocument(formData);
-      
-      if (rescre && rescre.success) {
-        // Only create document-user relation if resource was created successfully
-        await createDocumentByUser(user.idUser, rescre.data.resource.idResource);
-        showSuccessToast("Recurso", "creado");
-        onClose();
+      if (isEditing) {
+        const updateData = {
+          ...data,
+          id: document.idResource 
+        };
+        
+        if (data.file && data.file[0]) {
+          updateData.file = data.file[0];
+        }
+        
+        if (data.image && data.image[0]) {
+          updateData.image = data.image[0];
+        }
+
+        const result = await updateDocument(updateData);
+        if (result && result.success) {
+          showSuccessToast("Recurso actualizado exitosamente");
+          onClose();
+        } else {
+          showErrorToast("Error al actualizar el recurso");
+        }
+        
       } else {
-        showErrorToast("Error al crear el Recurso");
+        // Ensure we have valid File objects for new documents
+        if (!data.file || !data.file[0] || !data.image || !data.image[0]) {
+          showErrorToast("Por favor selecciona ambos archivos: documento principal e imagen de portada");
+          setLoading(false);
+          return;
+        }
+        
+        // Guardar las referencias de los usuarios antes de eliminarlas del formData
+        const idDirector = String(data.idDirector);
+        const idSupervisor = String(data.idSupervisor);
+        const idRevisor1 = String(data.idRevisor1);
+        const idRevisor2 = String(data.idRevisor2);
+        
+        // Preparar el FormData solo con los datos necesarios para el recurso, sin los IDs de usuarios
+        const formData = {
+          title: data.title,
+          description: data.description,
+          datePublication: data.datePublication,
+          isActive: "1",
+          idStudent: String(data.idStudent),
+          idCategory: String(data.idCategory),
+          file: data.file[0],
+          image: data.image[0]
+        };
+              
+        try {
+          const response = await createDocument(formData);
+          
+          if (response && response.success) {
+            const resourceId = response.data.resource.idResource;
+            
+            // Crear las relaciones con los usuarios
+            const userRelationPromises = [
+              createDocumentByUser(idDirector, resourceId),
+              createDocumentByUser(idSupervisor, resourceId),
+              createDocumentByUser(idRevisor1, resourceId),
+              createDocumentByUser(idRevisor2, resourceId)
+            ];
+            
+            // Esperar a que todas las relaciones se completen
+            await Promise.all(userRelationPromises);
+            
+            showSuccessToast("Recurso creado exitosamente");
+            onClose();
+          } else {
+            showErrorToast(response?.message || "Error al crear el recurso");
+          }
+        } catch (err) {
+          console.error("API call error:", err);
+          showErrorToast("Error al comunicarse con el servidor");
+        }
       }
     } catch(err) {
       console.error("Error completo:", err);
-      showErrorToast(err.response?.data?.message || "Error al crear el Recurso");
+
+      const errorMessage = 
+        err.response?.data?.message || 
+        (err.response?.status === 400 ? "Error en la solicitud: datos inválidos" : "Error al procesar el recurso");
+      showErrorToast(errorMessage);
     } finally {
       setLoading(false);
     }
   });
 
   if (!isOpen) return null;
+
+  // Check for required select fields
+  const validateSelectField = (value) => {
+    return value !== "" && value !== null && value !== undefined;
+  };
 
   return (
     <div className="fixed inset-0 flex justify-center items-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50 }}>
@@ -109,14 +210,15 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4" encType="multipart/form-data">
+          {/* Form fields - add error validation messages */}
           <div>
             <label className="block text-gray-700 mb-1">Título</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register("title")}
-              required
+              className={`w-full border ${errors.title ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("title", { required: "El título es obligatorio" })}
             />
+            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
           </div>
 
           <div>
@@ -133,10 +235,11 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           <div>
             <label className="block text-gray-700 mb-1">Estudiante</label>
             <select
-              name="idStudent"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register("idStudent")}
-              required
+              className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("idStudent", { 
+                required: "Debes seleccionar un estudiante",
+                validate: validateSelectField
+              })}
             >
               <option value="">Seleccionar estudiante</option>
               {students.map(student => (
@@ -144,6 +247,27 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
                   {student.name}
                 </option>
               ))}
+            </select>
+            {errors.idStudent && <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-gray-700 mb-1">Supervisor</label>
+            <select
+              className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("idSupervisor", { 
+                required: "Debes seleccionar un supervisor",
+                validate: validateSelectField
+              })}
+            >
+              <option value="">Seleccionar Supervisor</option>
+                {users
+                .filter(user => user.rol === "supervisor")
+                .map(user => (
+                  <option key={user.idUser} value={user.idUser}>
+                    {user.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -158,7 +282,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               >
                 <option value="">Seleccionar revisor</option>
                 {users
-                .filter(user => user.rol !== "director" && user.rol !== "admin")
+                .filter(user => user.rol === "revisor")
                 .map(user => (
                   <option key={user.idUser} value={user.idUser}>
                     {user.name}
@@ -177,7 +301,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               >
                 <option value="">Seleccionar revisor</option>
                 {users
-                .filter(user => user.rol !== "director" && user.rol !== "admin")
+                .filter(user => user.rol === "revisor")
                 .map(user => (
                   <option key={user.idUser} value={user.idUser}>
                     {user.name}
@@ -222,10 +346,19 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             <input
               type="file"
               accept=".pdf,.png,.jpg,.jpeg,.mp4"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register("file")}
-              required
+              className={`w-full border ${errors.file ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("file", { 
+                required: isEditing ? false : "Debes seleccionar un archivo"
+              })}
             />
+            {errors.file && <p className="text-red-500 text-xs mt-1">{errors.file.message}</p>}
+            {isEditing && document.filePath && (
+              <p className="text-xs text-gray-500 mt-1">
+                Archivo actual: {document.filePath.split('/').pop()}
+                <br/>
+                Solo sube un nuevo archivo si deseas reemplazar el existente.
+              </p>
+            )}
           </div>
 
           <div>
@@ -233,10 +366,22 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             <input
               type="file"
               accept=".png,.jpg,.jpeg"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...register("image")}
-              required
+              className={`w-full border ${errors.image ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("image", { 
+                required: isEditing ? false : "Debes seleccionar una imagen de portada" 
+              })}
             />
+            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
+            {isEditing && document.tempImageUrl && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">Imagen de portada actual:</p>
+                <img 
+                  src={document.tempImageUrl} 
+                  alt="Portada actual" 
+                  className="h-20 object-contain border rounded"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">

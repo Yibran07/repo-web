@@ -4,13 +4,14 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
 import DocumentFormModal from '../components/DocumentFormModal';
-import DocumentDetailModal from '../components/DocumentDetailModal';
+import DocumentViewModal from '../components/DocumentViewModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 import { useDocuments } from "../context/DocumentContext";
 import { useAuth } from '../context/AuthContext';
 import { useStudent } from '../context/StudentContext';
 import { useUser } from '../context/UserContext';
+import { useCareer } from '../context/CareerContext';
 
 import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
@@ -32,12 +33,14 @@ export default function DocumentsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
 
-  const { getDocumentsByUser, documents, loading, deleteDocument } = useDocuments();
+  // Corregir el nombre de la función aquí
+  const { getDocumentsByUser, documents, loading, deleteDocument, documentUserRelations, getDocumentsUser } = useDocuments();
+  
   const { user } = useAuth();
   const { students } = useStudent();
   const { users } = useUser();
+  const { careers } = useCareer(); // Cambio importante: obtener careers del context correcto
   const allDocuments = documents?.resources || [];
-  console.log("selectDocument",selectedDocumentId)
   
   // Función para manejar la búsqueda desde el navbar
   const handleSearch = (term) => {
@@ -59,10 +62,17 @@ export default function DocumentsPage() {
           activeFilters.faculties.some(facId => {
             // Buscar la carrera del estudiante
             const student = students.find(s => s.idStudent === doc.idStudent);
-            const studentCareer = student ? student.career : null;
+            if (!student || !student.idCareer) return false;
+            
+            // Verificamos que careers exista y tenga datos
+            if (!careers || !careers.length) return false;
+            
+            // Buscar la carrera y su facultad
+            const studentCareer = careers.find(c => c.idCareer === student.idCareer);
+            if (!studentCareer || !studentCareer.idFaculty) return false;
             
             // Verificar si la facultad de la carrera coincide
-            return studentCareer && studentCareer.idFaculty === facId;
+            return studentCareer.idFaculty.toString() === facId.toString();
           }));
       
       // Filtrar por carrera (a través de estudiante -> carrera)
@@ -101,7 +111,7 @@ export default function DocumentsPage() {
     }
     
     return results;
-  }, [allDocuments, activeFilters, searchTerm, students, users]);
+  }, [allDocuments, activeFilters, searchTerm, students, users, careers]);
   
   // Manejar cambios en los filtros
   const handleFilterChange = (filters) => {
@@ -138,8 +148,16 @@ export default function DocumentsPage() {
   useEffect(() => {
     if (user && user.idUser) {
       getDocumentsByUser(user.idUser);
+      getDocumentsUser(); // Nombre corregido
     }
-  }, [getDocumentsByUser, user]);
+  }, [getDocumentsByUser, getDocumentsUser, user]);
+
+  // Add logging to debug image path issues
+  useEffect(() => {
+    if (filteredDocuments && filteredDocuments.length > 0) {
+      console.log("First document in filtered list:", filteredDocuments[0]);
+    }
+  }, [filteredDocuments]);
 
   // Función para editar un documento
   const handleEditDocument = (docId) => {
@@ -187,10 +205,8 @@ export default function DocumentsPage() {
 
   // Función para manejar el clic en una card
   const handleCardClick = (docId) => {
-    console.log("Card clicked in DocumentsPage:", docId);
     setSelectedDocumentId(docId);
     setShowDetailModal(true);
-    console.log("Modal state after click:", selectedDocumentId, showDetailModal);
   };
 
   // Función para cerrar el modal de detalles
@@ -269,21 +285,40 @@ export default function DocumentsPage() {
               </div>
             ) : (
               <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-                {currentCards.map(card => (
-                  <Card 
-                    key={card.idResource}
-                    idResource={card.idResource}
-                    title={card.title}
-                    author={card.idDirector}
-                    date={card.datePublication}
-                    category={card.idCategory}
-                    imageUrl={card.tempImageUrl || "/images/placeholder.jpg"}
-                    onEdit={handleEditDocument}
-                    onDelete={handleDeleteConfirmation}
-                    isUserDocument={user && user.idUser === card.idDirector}
-                    onClick={handleCardClick(card.idResource)}  // Pass the function directly without wrapping in an arrow function
-                  />
-                ))}
+                {currentCards.map(card => {
+                  // Encontrar los IDs de usuario relacionados con este documento
+                  const relatedUserIds = documentUserRelations
+                    .filter(rel => rel.idResource === card.idResource)
+                    .map(rel => rel.idUser);
+                
+                  // Encontrar el director entre los usuarios relacionados
+                  const directorUser = users.find(u => 
+                    relatedUserIds.includes(u.idUser) && u.rol === 'director'
+                  );
+                  
+                  // Determine the correct image URL to use
+                  const imageUrl = card.tempImageUrl || 
+                                  (card.imagePath ? 
+                                    `${process.env.REACT_APP_API_URL}${card.imagePath}` : 
+                                    null);
+                  
+                  return (
+                    <Card 
+                      key={card.idResource}
+                      idResource={card.idResource}
+                      title={card.title}
+                      author={directorUser?.idUser || card.idDirector}
+                      authorName={directorUser?.name} // Pasar el nombre del director
+                      date={card.datePublication}
+                      category={card.idCategory}
+                      imageUrl={imageUrl}
+                      onEdit={handleEditDocument}
+                      onDelete={handleDeleteConfirmation}
+                      isUserDocument={user && user.idUser === (directorUser?.idUser || card.idDirector)}
+                      onClick={handleCardClick}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -356,7 +391,7 @@ export default function DocumentsPage() {
         confirmButtonColor="red"
       />
 
-      <DocumentDetailModal 
+      <DocumentViewModal 
         isOpen={showDetailModal} 
         onClose={handleCloseDetailModal} 
         documentId={selectedDocumentId} 

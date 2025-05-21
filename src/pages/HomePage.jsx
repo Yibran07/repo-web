@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router';
 
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
+import DocumentViewModal from '../components/DocumentViewModal';
 import { useDocuments } from '../context/DocumentContext';
 import { useStudent } from '../context/StudentContext';
 import { useUser } from '../context/UserContext';
+import { useCareer } from '../context/CareerContext';
 
 export default function HomePage() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -21,6 +23,14 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
 
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
+
+  // Asegurarnos de usar el contexto de carreras correcto
+  const { careers } = useCareer();
+  const { students } = useStudent();
+  const { users } = useUser();
+  
   // Obtener el término de búsqueda del estado de navegación si existe
   useEffect(() => {
     if (location.state?.searchTerm) {
@@ -28,9 +38,20 @@ export default function HomePage() {
     }
   }, [location.state]);
 
-  const { getDocuments, documents, loading } = useDocuments();
-  const { students } = useStudent();
-  const { users } = useUser();
+  // Función para manejar el clic en una card
+  const handleCardClick = (docId) => {
+    setSelectedDocumentId(docId);
+    setShowDetailModal(true);
+  };
+
+  // Función para cerrar el modal de detalles
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedDocumentId(null);
+  };
+
+  // Asegúrate de usar el nombre correcto de la función
+  const { getDocuments, documents, loading, documentUserRelations, getDocumentsUser } = useDocuments();
   const allDocuments = documents?.resources || [];
   
   // Función para manejar la búsqueda desde el navbar
@@ -55,10 +76,16 @@ export default function HomePage() {
         activeFilters.faculties.length === 0 || 
         (student.idCareer && 
           activeFilters.faculties.some(facId => {
-            // Buscar la carrera del estudiante
-            const studentCareer = student.career || {}; // Si no está anidado el objeto, ajusta esta línea
+            // Buscar la carrera del estudiante y su facultad
+            // Verificamos que careers exista y tenga datos
+            if (!careers || !careers.length) return false;
+            
+            const studentCareer = careers.find(c => c.idCareer === student.idCareer);
+            // Verificamos que la carrera exista y tenga idFaculty
+            if (!studentCareer || !studentCareer.idFaculty) return false;
+            
             // Verificar si la facultad de la carrera coincide
-            return studentCareer.idFaculty === facId;
+            return studentCareer.idFaculty.toString() === facId.toString();
           }));
       
       // Filtrar por carrera (a través de estudiante -> carrera)
@@ -97,7 +124,7 @@ export default function HomePage() {
     }
     
     return results;
-  }, [allDocuments, activeFilters, searchTerm, students, users]);
+  }, [allDocuments, activeFilters, searchTerm, students, users, careers]);
   
   // Manejar cambios en los filtros
   const handleFilterChange = (filters) => {
@@ -132,8 +159,10 @@ export default function HomePage() {
   }, [filteredDocuments, currentPage, totalPages]);
 
   useEffect(() => {
+    // Cargar documentos y relaciones usuario-documento
     getDocuments();
-  }, [getDocuments]);
+    getDocumentsUser(); // Nombre corregido
+  }, [getDocuments, getDocumentsUser]);
 
   return (
     <div>
@@ -213,16 +242,31 @@ export default function HomePage() {
               </div>
             ) : (
               <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-                {currentCards.map(card => (
-                  <Card 
-                    key={card.idResource}
-                    title={card.title}
-                    author={card.idDirector}
-                    date={card.datePublication}
-                    category={card.idCategory}
-                    imageUrl={card.imageUrl}
-                  />
-                ))}
+                {currentCards.map(card => {
+                  // Encontrar los IDs de usuario relacionados con este documento
+                  const relatedUserIds = documentUserRelations
+                    .filter(rel => rel.idResource === card.idResource)
+                    .map(rel => rel.idUser);
+                
+                  // Encontrar el director entre los usuarios relacionados
+                  const directorUser = users.find(u => 
+                    relatedUserIds.includes(u.idUser) && u.rol === 'director'
+                  );
+                  
+                  return (
+                    <Card 
+                      key={card.idResource}
+                      idResource={card.idResource}
+                      title={card.title}
+                      author={directorUser?.idUser || card.idDirector}
+                      authorName={directorUser?.name} // Pasar el nombre del director directamente
+                      date={card.datePublication}
+                      category={card.idCategory}
+                      imageUrl={card.tempImageUrl}
+                      onClick={handleCardClick}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -276,6 +320,13 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* Modal para ver detalles del documento */}
+      <DocumentViewModal 
+        isOpen={showDetailModal} 
+        onClose={handleCloseDetailModal} 
+        documentId={selectedDocumentId} 
+      />
     </div>
   );
 }

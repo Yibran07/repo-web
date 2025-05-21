@@ -3,7 +3,7 @@ import { useCareer } from '../context/CareerContext';
 import { useCategory } from '../context/CategoryContext';
 import { useFaculty } from '../context/FacultyContext';
 import { useDocuments } from '../context/DocumentContext';
-import { useStudent } from '../context/StudentContext';
+//import { useStudent } from '../context/StudentContext';
 
 const Sidebar = ({ 
   showMobileSidebar, 
@@ -19,7 +19,7 @@ const Sidebar = ({
   const { careers } = useCareer();
   const { categories } = useCategory();
   const { documents } = useDocuments();
-  const { students } = useStudent();
+  //const { students } = useStudent();
   
   const [availableYears, setAvailableYears] = useState([]);
   
@@ -66,9 +66,6 @@ const Sidebar = ({
       // Si no hay facultades seleccionadas, no filtramos carreras
       if (newSelection.length === 0) {
         // No hacemos nada especial, todas las carreras se mostrarán
-      } else {
-        // Podríamos filtrar las carreras que pertenecen a las facultades seleccionadas
-        // Esto es opcional, depende de la UX que prefieras
       }
     }
     
@@ -306,7 +303,7 @@ const Sidebar = ({
             )}
           </div>
           
-          {selectedFaculties.length > 0 || selectedCareers.length > 0 || selectedCategories.length > 0 || selectedYears.length > 0 ? (
+          {/* {selectedFaculties.length > 0 || selectedCareers.length > 0 || selectedCategories.length > 0 || selectedYears.length > 0 ? (
             <div className='mt-4'>
               <button
                 className='w-full py-2 px-3 bg-[#003DA5] text-white rounded font-medium hover:bg-blue-700 transition-colors'
@@ -320,7 +317,7 @@ const Sidebar = ({
                 Aplicar Filtros
               </button>
             </div>
-          ) : null}
+          ) : null} */}
         </div>
       </div>
     </>

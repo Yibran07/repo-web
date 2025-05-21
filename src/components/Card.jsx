@@ -1,32 +1,61 @@
 import { useCategory } from "../context/CategoryContext";
 import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
+import { getCompleteFileUrl } from "../util/urlUtils";
 
-export default function Card({ title, author, date, category, imageUrl, idResource, onEdit, onDelete, isUserDocument }) {
+export default function Card({ 
+  title, 
+  author, 
+  authorName, // Nuevo prop para recibir directamente el nombre del autor
+  date, 
+  category, 
+  imageUrl, 
+  idResource, 
+  onEdit, 
+  onDelete, 
+  isUserDocument,
+  onClick
+}) {
   const { users } = useUser();
   const { categories } = useCategory();
   const { user } = useAuth();
 
-  // Encontrar el autor y categoría usando los datos ya cargados en el contexto
-  const authorName = users.find(user => user.idUser === author)?.name || "Autor desconocido";
+  const displayAuthorName = authorName || users.find(user => user.idUser === author)?.name || "Autor desconocido";
   const categoryName = categories.find(cat => cat.idCategory === category)?.name || "Categoría desconocida";
 
-  // Verificar si el usuario actual es director y es su documento
   const canManageDocument = user?.rol === 'director' && isUserDocument;
 
+  const handleCardClick = (e) => {
+    if (!e.target.closest('button') && onClick) {
+      onClick(idResource);
+    }
+  };
+
   return (
-    <div className="rounded-xl overflow-hidden shadow-lg h-55 relative group">
-      <div 
-        className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-300 group-hover:scale-110"
-        style={{ backgroundImage: `url(${imageUrl})` }}
-      ></div>
+    <div 
+      className="rounded-xl overflow-hidden shadow-lg h-55 relative group cursor-pointer"
+      onClick={handleCardClick}
+    >
+      <div className="absolute inset-0 z-0 transition-transform duration-300 group-hover:scale-110 overflow-hidden">
+        {imageUrl ? (
+          <img 
+            src={getCompleteFileUrl(imageUrl)} 
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <p className="text-gray-500 text-xs">Sin imagen</p>
+          </div>
+        )}
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
       <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-20">
         <div className="flex justify-between items-center text-sm mb-2">
-          <span className="opacity-80">{date.split("T")[0]}</span>
-          <span className="opacity-80">{authorName}</span>
+          <span className="opacity-80">{date ? date.split("T")[0] : "Sin fecha"}</span>
+          <span className="opacity-80">{displayAuthorName}</span>
         </div>
-        <h3 className="font-bold text-lg line-clamp-2">{title}</h3>
+        <h3 className="font-bold text-lg line-clamp-2">{title || "Sin título"}</h3>
         
         <div className="flex items-center justify-between">
           <p className="opacity-80 text-xs truncate max-w-[70%]" title={categoryName}>{categoryName}</p>
@@ -34,7 +63,10 @@ export default function Card({ title, author, date, category, imageUrl, idResour
           {canManageDocument && (
             <div className="flex space-x-2">
               <button 
-                onClick={() => onEdit(idResource)} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit && onEdit(idResource);
+                }} 
                 className="p-1 text-white hover:text-blue-300 transition-colors"
                 title="Editar"
               >
@@ -43,7 +75,10 @@ export default function Card({ title, author, date, category, imageUrl, idResour
                 </svg>
               </button>
               <button 
-                onClick={() => onDelete(idResource)} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete && onDelete(idResource);
+                }} 
                 className="p-1 text-white hover:text-red-300 transition-colors"
                 title="Eliminar"
               >

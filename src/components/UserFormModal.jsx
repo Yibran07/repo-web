@@ -145,9 +145,10 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-                <option value="">Seleccionar un rol </option>
+                <option value="">Selecciona un rol </option>
                 <option value="director">Director</option>
                 <option value="revisor">Revisor</option>
+                <option value="supervisor">Supervisor</option>
             </select>
           </div>
 

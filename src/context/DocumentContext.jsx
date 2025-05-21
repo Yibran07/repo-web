@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest, getDocumentRequest } from "../api/documents";
+import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest, getDocumentRequest, getDocumentsUserRequest } from "../api/documents";
 
 const DocumentContext = createContext();
 
@@ -12,26 +12,39 @@ export const useDocuments = () => {
 };
 
 export function DocumentProvider({ children }) {
-    const [documents, setDocuments] = useState([]);
-    const [loading, setLoading] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  // Add cache for individual documents
+  const [documentCache, setDocumentCache] = useState({});
 
-    const createDocument = async (document) => {
+  // Estado para almacenar la relación entre documentos y usuarios
+  const [documentUserRelations, setDocumentUserRelations] = useState([]);
+
+  const createDocument = async (document) => {
       try {
         setLoading(true);
         const res = await createDocumentRequest(document);
-        console.log(res.data);
-        setDocuments(prevDocuments => [...prevDocuments, res.data.resource]);
+        setDocuments(prevDocuments => [...prevDocuments, res.data.document]);
         return {
           success: true,
           data: res.data
         };
-      } catch(err) {
-        console.error(err);
+      } catch (error) {
+        console.error("Error in createDocument:", error);
+        
+        const errorDetails = error.response?.data?.errors 
+          ? Object.entries(error.response.data.errors).map(([key, value]) => `${key}: ${value}`).join(', ')
+          : error.response?.data?.message || "Error desconocido";
+        
+        console.error("Error details:", errorDetails);
+        
         return {
           success: false,
-          error: err
+          message: error.response?.data?.message || `Error al crear el documento: ${errorDetails}`,
+          error
         };
-      } finally {
+      }
+      finally {
         setLoading(false);
       }
     };
@@ -55,14 +68,41 @@ export function DocumentProvider({ children }) {
       }
     };
 
-    const getDocuments = useCallback(async (forceRefresh = false) => {
+    const getDocumentDirector = useCallback((documentId) => {
+      if (!documentUserRelations.length) return null;
+      
+      const userRelations = documentUserRelations.filter(
+        rel => rel.idResource === documentId
+      );
+      
+      return userRelations;
+    }, [documentUserRelations]);
+
+    const getDocuments = useCallback(async (forceRefresh = false, includeFile = true) => {
       if (documents.length > 0 && !forceRefresh) return documents;
       
       try {
         setLoading(true);
-        const res = await getDocumentsRequest();
-        setDocuments(res.data);
-        return res.data;
+        const [docsRes, relationsRes] = await Promise.all([
+          getDocumentsRequest(includeFile),
+          getDocumentsUserRequest()
+        ]);
+        
+        setDocumentUserRelations(relationsRes.data.resourceUsers || []);
+        
+        const enrichedDocuments = { ...docsRes.data };
+        if (enrichedDocuments.resources) {
+          for (const doc of enrichedDocuments.resources) {
+            const documentRelations = relationsRes.data.resourceUsers.filter(
+              rel => rel.idResource === doc.idResource
+            );
+            
+            doc.relatedUsers = documentRelations.map(rel => rel.idUser);
+          }
+        }
+        
+        setDocuments(enrichedDocuments);
+        return enrichedDocuments;
       } catch(err) {
         console.error(err);
         return [];
@@ -71,12 +111,29 @@ export function DocumentProvider({ children }) {
       }
     }, [documents.length]);
 
-    const getDocumentsByUser = useCallback(async (userId) => {
+    const getDocumentsByUser = useCallback(async (userId, includeFile = true) => {
       try {
         setLoading(true);
-        const res = await getDocumentsByUserRequest(userId);
-        setDocuments(res.data);
-        return res.data;
+        const [docsRes, relationsRes] = await Promise.all([
+          getDocumentsByUserRequest(userId, includeFile),
+          getDocumentsUserRequest()
+        ]);
+        
+        setDocumentUserRelations(relationsRes.data.resourceUsers || []);
+        
+        const enrichedDocuments = { ...docsRes.data };
+        if (enrichedDocuments.resources) {
+          for (const doc of enrichedDocuments.resources) {
+            const documentRelations = relationsRes.data.resourceUsers.filter(
+              rel => rel.idResource === doc.idResource
+            );
+            
+            doc.relatedUsers = documentRelations.map(rel => rel.idUser);
+          }
+        }
+        
+        setDocuments(enrichedDocuments);
+        return enrichedDocuments;
       } catch(err) {
         console.error(err);
         return [];
@@ -130,15 +187,65 @@ export function DocumentProvider({ children }) {
     }
 
     const getDocument = async (id, includeFile = false) => {
+      includeFile = false; 
+      
+      // Try to get from cache first
+      if (documentCache[id] && (documentCache[id].includeFile === true || !includeFile)) {
+        return {
+          success: true,
+          data: { resource: documentCache[id].data }
+        };
+      }
+
+      let foundDoc = null;
+      
+      if (documents && documents.resources) {
+        foundDoc = documents.resources.find(doc => 
+          doc.idResource === parseInt(id) || doc.idResource === id
+        );
+      } else if (Array.isArray(documents)) {
+        foundDoc = documents.find(doc => 
+          doc.idResource === parseInt(id) || doc.idResource === id
+        );
+      }
+      
+      if (foundDoc) {
+        setDocumentCache(prev => ({
+          ...prev,
+          [id]: {
+            data: foundDoc,
+            includeFile: false,
+            timestamp: Date.now()
+          }
+        }));
+        
+        return {
+          success: true,
+          data: { resource: foundDoc }
+        };
+      }
+
       try {
         setLoading(true);
         const res = await getDocumentRequest(id, includeFile);
+        
+        // Save to cache with timestamp
+        setDocumentCache(prev => ({
+          ...prev,
+          [id]: {
+            data: res.data.resource,
+            includeFile,
+            timestamp: Date.now()
+          }
+        }));
+        
         return {
           success: true,
           data: res.data
         };
       } catch (error) {
         console.error("Error fetching document:", error);
+        
         return {
           success: false,
           message: error.response?.data?.message || "Error al obtener el documento"
@@ -147,6 +254,21 @@ export function DocumentProvider({ children }) {
         setLoading(false);
       }
     };
+
+    // Función para obtener todas las relaciones documento-usuario - corregir nombre
+    const getDocumentsUser = useCallback(async() => {
+      try {
+        setLoading(true);
+        const res = await getDocumentsUserRequest();
+        setDocumentUserRelations(res.data.resourceUsers || []);
+        return res.data;
+      } catch(err) {
+        console.error(err);
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
     return (
         <DocumentContext.Provider value={{
@@ -158,7 +280,10 @@ export function DocumentProvider({ children }) {
           deleteDocument,
           getDocumentsByUser,
           createDocumentByUser,
-          getDocument, // Add this function to the context
+          getDocument,
+          getDocumentsUser, // Nombre corregido aquí
+          documentUserRelations,
+          getDocumentDirector
         }}>
           {children}
         </DocumentContext.Provider>
