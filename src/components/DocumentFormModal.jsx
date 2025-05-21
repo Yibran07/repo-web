@@ -55,13 +55,13 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               role: relatedUser?.rol || ''
             };
           });
-          
+
           // Find supervisor
           const supervisor = relatedUsersWithRoles.find(u => u.role === 'supervisor');
           if (supervisor) {
             setValue('idSupervisor', supervisor.id);
           }
-          
+
           // Find reviewers
           const reviewers = relatedUsersWithRoles.filter(u => u.role === 'revisor');
           if (reviewers.length >= 1) {
@@ -70,7 +70,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           if (reviewers.length >= 2) {
             setValue('idRevisor2', reviewers[1].id);
           }
-          
+
           // Find director (optional - might already be set from document.idDirector)
           const director = relatedUsersWithRoles.find(u => u.role === 'director');
           if (director) {
@@ -99,17 +99,17 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
-      
+
       if (isEditing) {
         const updateData = {
           ...data,
-          id: document.idResource 
+          id: document.idResource
         };
-        
+
         if (data.file && data.file[0]) {
           updateData.file = data.file[0];
         }
-        
+
         if (data.image && data.image[0]) {
           updateData.image = data.image[0];
         }
@@ -121,7 +121,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
         } else {
           showErrorToast("Error al actualizar el recurso");
         }
-        
+
       } else {
         // Ensure we have valid File objects for new documents
         if (!data.file || !data.file[0] || !data.image || !data.image[0]) {
@@ -129,13 +129,13 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           setLoading(false);
           return;
         }
-        
+
         // Guardar las referencias de los usuarios antes de eliminarlas del formData
         const idDirector = String(data.idDirector);
         const idSupervisor = String(data.idSupervisor);
         const idRevisor1 = String(data.idRevisor1);
         const idRevisor2 = String(data.idRevisor2);
-        
+
         // Preparar el FormData solo con los datos necesarios para el recurso, sin los IDs de usuarios
         const formData = {
           title: data.title,
@@ -147,13 +147,13 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           file: data.file[0],
           image: data.image[0]
         };
-              
+
         try {
           const response = await createDocument(formData);
-          
+
           if (response && response.success) {
             const resourceId = response.data.resource.idResource;
-            
+
             // Crear las relaciones con los usuarios
             const userRelationPromises = [
               createDocumentByUser(idDirector, resourceId),
@@ -161,10 +161,10 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               createDocumentByUser(idRevisor1, resourceId),
               createDocumentByUser(idRevisor2, resourceId)
             ];
-            
+
             // Esperar a que todas las relaciones se completen
             await Promise.all(userRelationPromises);
-            
+
             showSuccessToast("Recurso creado exitosamente");
             onClose();
           } else {
@@ -175,11 +175,11 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           showErrorToast("Error al comunicarse con el servidor");
         }
       }
-    } catch(err) {
+    } catch (err) {
       console.error("Error completo:", err);
 
-      const errorMessage = 
-        err.response?.data?.message || 
+      const errorMessage =
+        err.response?.data?.message ||
         (err.response?.status === 400 ? "Error en la solicitud: datos inválidos" : "Error al procesar el recurso");
       showErrorToast(errorMessage);
     } finally {
@@ -199,7 +199,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
       <div className="bg-white rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-[#003DA5]">{modalTitle}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -236,7 +236,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             <label className="block text-gray-700 mb-1">Estudiante</label>
             <select
               className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("idStudent", { 
+              {...register("idStudent", {
                 required: "Debes seleccionar un estudiante",
                 validate: validateSelectField
               })}
@@ -255,13 +255,13 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             <label className="block text-gray-700 mb-1">Supervisor</label>
             <select
               className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("idSupervisor", { 
+              {...register("idSupervisor", {
                 required: "Debes seleccionar un supervisor",
                 validate: validateSelectField
               })}
             >
               <option value="">Seleccionar Supervisor</option>
-                {users
+              {users
                 .filter(user => user.rol === "supervisor")
                 .map(user => (
                   <option key={user.idUser} value={user.idUser}>
@@ -282,12 +282,12 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               >
                 <option value="">Seleccionar revisor</option>
                 {users
-                .filter(user => user.rol === "revisor")
-                .map(user => (
-                  <option key={user.idUser} value={user.idUser}>
-                    {user.name}
-                  </option>
-                ))}
+                  .filter(user => user.rol === "revisor")
+                  .map(user => (
+                    <option key={user.idUser} value={user.idUser}>
+                      {user.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -301,12 +301,12 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               >
                 <option value="">Seleccionar revisor</option>
                 {users
-                .filter(user => user.rol === "revisor")
-                .map(user => (
-                  <option key={user.idUser} value={user.idUser}>
-                    {user.name}
-                  </option>
-                ))}
+                  .filter(user => user.rol === "revisor")
+                  .map(user => (
+                    <option key={user.idUser} value={user.idUser}>
+                      {user.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -347,7 +347,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               type="file"
               accept=".pdf,.png,.jpg,.jpeg,.mp4"
               className={`w-full border ${errors.file ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("file", { 
+              {...register("file", {
                 required: isEditing ? false : "Debes seleccionar un archivo"
               })}
             />
@@ -355,7 +355,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             {isEditing && document.filePath && (
               <p className="text-xs text-gray-500 mt-1">
                 Archivo actual: {document.filePath.split('/').pop()}
-                <br/>
+                <br />
                 Solo sube un nuevo archivo si deseas reemplazar el existente.
               </p>
             )}
@@ -367,17 +367,17 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
               type="file"
               accept=".png,.jpg,.jpeg"
               className={`w-full border ${errors.image ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("image", { 
-                required: isEditing ? false : "Debes seleccionar una imagen de portada" 
+              {...register("image", {
+                required: isEditing ? false : "Debes seleccionar una imagen de portada"
               })}
             />
             {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
-            {isEditing && document.tempImageUrl && (
+            {isEditing && document.imageUrl && (
               <div className="mt-2">
                 <p className="text-xs text-gray-500 mb-1">Imagen de portada actual:</p>
-                <img 
-                  src={document.tempImageUrl} 
-                  alt="Portada actual" 
+                <img
+                  src={document.imageUrl}
+                  alt="Portada actual"
                   className="h-20 object-contain border rounded"
                 />
               </div>
