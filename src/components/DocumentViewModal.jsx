@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCategory } from "../context/CategoryContext";
-import { useUser } from "../context/UserContext"; 
+import { useUser } from "../context/UserContext";
 import { useStudent } from "../context/StudentContext";
 import { useDocuments } from "../context/DocumentContext";
 import { getCompleteFileUrl } from "../util/urlUtils";
@@ -16,9 +16,9 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const { categories } = useCategory();
   const { users } = useUser();
   const { students } = useStudent();
-  const {careers} = useCareer();
-  const {faculties } = useFaculty();
-  
+  const { careers } = useCareer();
+  const { faculties } = useFaculty();
+
   // Track related users for this document
   const [relatedUsers, setRelatedUsers] = useState([]);
 
@@ -30,47 +30,47 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   // Prefetch document data when modal is opened
   useEffect(() => {
     let mounted = true;
-    
+
     const fetchDocumentDetails = async () => {
       if (!documentId || !isOpen) return;
-      
+
       setLoading(true);
       setError(null);
-      
+
       try {
         // IMPORTANT: Always use includeFile=false to avoid 500 errors
         const response = await getDocument(documentId, false);
         if (!mounted) return;
-        
+
         if (response && response.success) {
           const docResource = response.data.resource;
           setDocument(docResource);
-          
+
           // Find related users directly from documentUserRelations
           const resourceId = parseInt(docResource.idResource);
-          
+
           const docRelations = documentUserRelations.filter(
             rel => parseInt(rel.idResource) === resourceId
           );
-          
+
           setRelatedUsers(docRelations || []);
         } else {
           // Try to find the document in the already loaded documents list
           let foundDoc = null;
-          
+
           // Check if documents is an object with resources property
           if (documents && documents.resources) {
-            foundDoc = documents.resources.find(doc => 
+            foundDoc = documents.resources.find(doc =>
               doc.idResource === parseInt(documentId) || doc.idResource === documentId
             );
           }
           // Or if it's an array
           else if (Array.isArray(documents)) {
-            foundDoc = documents.find(doc => 
+            foundDoc = documents.find(doc =>
               doc.idResource === parseInt(documentId) || doc.idResource === documentId
             );
           }
-          
+
           if (foundDoc) {
             console.log("Using document from cache:", foundDoc);
             setDocument(foundDoc);
@@ -90,7 +90,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
     if (isOpen) {
       fetchDocumentDetails();
     }
-    
+
     return () => {
       mounted = false;
       if (!isOpen) {
@@ -106,20 +106,20 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
     const category = categories.find(c => c.idCategory === categoryId);
     return category ? category.name : "Categoría desconocida";
   };
-  
+
   // Add helper function to get faculty info through the relationship chain
   const getFacultyInfo = () => {
     if (!document || !document.idStudent) return { id: null, name: "No especificada" };
-    
+
     // Find the student
     const student = students.find(s => s.idStudent === document.idStudent);
     if (!student || !student.idCareer) return { id: null, name: "No especificada" };
-    
+
     const career = careers.find(c => c.idCareer === student.idCareer);
     if (!career || !career.idFaculty) return { id: null, name: "No especificada" };
-    
+
     const faculty = faculties.find(f => f.idFaculty === career.idFaculty);
-    
+
     return {
       id: career.idFaculty,
       name: faculty ? faculty.name : `Facultad ID: ${career.idFaculty}`
@@ -129,13 +129,13 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   // Add helper function to get career info through the relationship chain
   const getCareerInfo = () => {
     if (!document || !document.idStudent) return { id: null, name: "No especificada" };
-    
+
     // Find the student
     const student = students.find(s => s.idStudent === document.idStudent);
     if (!student || !student.idCareer) return { id: null, name: "No especificada" };
-    
+
     const career = careers.find(c => c.idCareer === student.idCareer);
-    
+
     return {
       id: student.idCareer,
       name: career ? career.name : `Carrera ID: ${student.idCareer}`
@@ -203,10 +203,10 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "Fecha no disponible";
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-MX', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
@@ -280,18 +280,18 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   // Function to make Dropbox URL viewable instead of downloadable
   const getViewableUrl = (url) => {
     if (!url) return null;
-    
+
     // If it's a Dropbox URL, transform it for viewing rather than downloading
     if (url.includes('dropboxusercontent.com') && url.includes('/get/')) {
       // Change /get/ to /view/ and remove dl=0/1 parameters
       return url.replace('/get/', '/view/').replace(/\?dl=[01]$/, '');
     }
-    
+
     // If it's a standard Dropbox share link, add ?raw=1 to make it directly viewable
     if (url.includes('dropbox.com/s/') && !url.includes('raw=1')) {
       return url + (url.includes('?') ? '&raw=1' : '?raw=1');
     }
-    
+
     return url;
   };
 
@@ -299,10 +299,10 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const renderPdfPreview = (fileUrl) => {
     // Make URL viewable
     const viewableUrl = getViewableUrl(fileUrl);
-    
+
     // Detect if it's a Dropbox URL
     const isDropboxUrl = fileUrl.includes('dropboxusercontent.com') || fileUrl.includes('dropbox.com');
-    
+
     // For Dropbox files, use an iframe as it works better with their previews
     if (isDropboxUrl) {
       return (
@@ -316,7 +316,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
         </div>
       );
     }
-    
+
     // For other PDFs, try react-pdf but with fallback to iframe
     return (
       <div className="w-full bg-gray-100 flex flex-col h-full">
@@ -337,10 +337,10 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
             error={
               <div className="flex flex-col items-center justify-center h-full">
                 <p className="text-gray-500 mb-4">Usando visor alternativo...</p>
-                <iframe 
+                <iframe
                   src={`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`}
-                  width="100%" 
-                  height="100%" 
+                  width="100%"
+                  height="100%"
                   frameBorder="0"
                   title="Google PDF Viewer"
                   className="h-[400px] w-full"
@@ -348,9 +348,9 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
               </div>
             }
           >
-            <Page 
-              pageNumber={pageNumber} 
-              scale={1.2} 
+            <Page
+              pageNumber={pageNumber}
+              scale={1.2}
               renderTextLayer={false}
               className="shadow-md"
               loading={
@@ -361,7 +361,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
             />
           </Document>
         </div>
-        
+
         {!pdfError && numPages && (
           <div className="p-2 bg-gray-100 flex justify-between items-center border-t">
             <button
@@ -391,39 +391,39 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const renderFilePreview = (doc) => {
     // If we have a tempFileUrl, use it directly - it's already a complete URL
     // Otherwise, use the filePath which needs to be transformed with getCompleteFileUrl
-    const fileUrl = doc.tempFileUrl || (doc.filePath ? getCompleteFileUrl(doc.filePath) : null);
-    
+    const fileUrl = doc.embedUrl || (doc.filePath ? getCompleteFileUrl(doc.filePath) : null);
+
     console.log("Preview file URL:", fileUrl);
-    
+
     // Try to determine if it's a PDF by Dropbox URL or extension
-    const isPdf = 
-      fileUrl.toLowerCase().endsWith('.pdf') || 
+    const isPdf =
+      fileUrl.toLowerCase().endsWith('.pdf') ||
       doc.filePath?.toLowerCase().endsWith('.pdf') ||
       fileUrl.includes('dropboxusercontent.com');
-    
+
     if (isPdf) {
       return renderPdfPreview(fileUrl);
-    } 
+    }
     // Handle images
     else if (fileUrl.match(/\.(jpe?g|png|gif)$/i)) {
       return (
-        <img 
-          src={fileUrl} 
-          alt="Vista previa de imagen" 
-          className="w-full h-full object-contain bg-gray-100" 
+        <img
+          src={fileUrl}
+          alt="Vista previa de imagen"
+          className="w-full h-full object-contain bg-gray-100"
         />
       );
-    } 
+    }
     // Handle videos
     else if (fileUrl.match(/\.(mp4|webm|mov)$/i)) {
       return (
-        <video 
-          src={fileUrl} 
-          controls 
-          className="w-full h-full" 
+        <video
+          src={fileUrl}
+          controls
+          className="w-full h-full"
         ></video>
       );
-    } 
+    }
     // Fallback for other file types
     else {
       return (
@@ -442,7 +442,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   // Helper function to get the best download URL
   const getDownloadUrl = (doc) => {
     // Prefer tempFileUrl for direct download from cloud storage
-    return doc.tempFileUrl || getCompleteFileUrl(doc.filePath);
+    return doc.downloadUrl || getCompleteFileUrl(doc.filePath);
   };
 
   return (
@@ -450,7 +450,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
       <div className="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-[#003DA5]">Detalles del recurso</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -468,8 +468,8 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
         ) : error ? (
           <div className="py-12 text-center">
             <p className="text-red-500">{error}</p>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Cerrar
@@ -482,9 +482,9 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-1">
                 <div className="overflow-hidden rounded-lg border h-full">
-                  {document.tempImageUrl || document.filePath ? (
-                    <img 
-                      src={getCompleteFileUrl(document.tempImageUrl || document.filePath)} 
+                  {document.imageUrl || document.filePath ? (
+                    <img
+                      src={getCompleteFileUrl(document.imageUrl || document.filePath)}
                       alt={document.title}
                       className="w-full h-full object-cover"
                     />
@@ -495,7 +495,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
                   )}
                 </div>
               </div>
-              
+
               <div className="md:col-span-2 space-y-4">
                 <div>
                   <h4 className="font-semibold text-gray-700 mb-2">Información general</h4>
@@ -534,21 +534,21 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-gray-700 mb-2">Descripción</h4>
               <div className="border rounded-lg p-4 bg-gray-50">
                 <p className="text-gray-600">{document.description}</p>
               </div>
             </div>
-            
+
             {/* Document preview section - full width and expanded */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-gray-700">Vista previa del documento</h4>
                 <div className="flex space-x-1">
-                  <a 
-                    href={getDownloadUrl(document)} 
+                  <a
+                    href={getDownloadUrl(document)}
                     download
                     target="_blank"
                     rel="noopener noreferrer"
