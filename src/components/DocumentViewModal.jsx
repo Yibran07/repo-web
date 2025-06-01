@@ -279,49 +279,39 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
     });
   }
 
-  // Function to make Dropbox URL viewable instead of downloadable
+  // Ensure we always fetch the raw PDF bytes (especially from Dropbox)
   const getViewableUrl = (url) => {
     if (!url) return null;
 
-    // If it's a Dropbox URL, transform it for viewing rather than downloading
-    if (url.includes('dropboxusercontent.com') && url.includes('/get/')) {
-      // Change /get/ to /view/ and remove dl=0/1 parameters
-      return url.replace('/get/', '/view/').replace(/\?dl=[01]$/, '');
-    }
-
-    // If it's a standard Dropbox share link, add ?raw=1 to make it directly viewable
-    if (url.includes('dropbox.com/s/') && !url.includes('raw=1')) {
+    // Dropbox temporary links sometimes point to an HTML preview page.
+    // Appending raw=1 forces Dropbox to return the file content itself,
+    // which pdf.js can fetch without CORS issues.
+    if (url.includes('dropboxusercontent.com') && !url.includes('raw=1')) {
       return url + (url.includes('?') ? '&raw=1' : '?raw=1');
     }
 
     return url;
   };
 
-  // Render a PDF preview, choosing the best strategy depending on the source
+  // Render a PDF preview using react‑pdf, and gracefully fall back to
+  // Google’s viewer if pdf.js fails (e.g. because of CORS).
   const renderPdfPreview = (fileUrl) => {
-    // Ensure we have a URL that is directly retrievable
     const viewableUrl = getViewableUrl(fileUrl);
 
-    // If the file is hosted on Dropbox we often run into CORS / CSP issues.
-    // In that case use Google’s lightweight viewer inside an <iframe>.
-    const isDropbox =
-      viewableUrl.includes('dropboxusercontent.com') ||
-      viewableUrl.includes('dropbox.com');
-
-    if (isDropbox) {
-      const googleViewer = `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(
+    // If react‑pdf already failed once we show the fallback iframe
+    if (pdfError) {
+      const googleViewer = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(
         viewableUrl
       )}`;
       return (
         <iframe
           src={googleViewer}
-          title="PDF preview"
-          className="w-full h-full border-0"
+          title="PDF fallback"
+          className="w-full h-full border-0 bg-gray-100"
         />
       );
     }
 
-    // Otherwise try to use react‑pdf so we can paginate
     return (
       <div className="w-full bg-gray-100 flex flex-col h-full">
         <div className="flex-grow flex justify-center p-1 bg-gray-200 h-full">
@@ -345,7 +335,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
           </Document>
         </div>
 
-        {numPages && !pdfError && (
+        {numPages && (
           <div className="p-2 bg-gray-100 flex justify-between items-center border-t">
             <button
               disabled={pageNumber <= 1}
