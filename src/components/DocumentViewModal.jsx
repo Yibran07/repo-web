@@ -5,8 +5,8 @@ import { useStudent } from "../context/StudentContext";
 import { useDocuments } from "../context/DocumentContext";
 import { getCompleteFileUrl } from "../util/urlUtils";
 import { Document, Page, pdfjs } from 'react-pdf';
-// Use an unpkg-hosted worker that always matches the installed pdf.js version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Use a CDNJS‑hosted worker that sends proper CORS headers
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
@@ -40,8 +40,8 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
       setError(null);
 
       try {
-        // IMPORTANT: Always use includeFile=false to avoid 500 errors
-        const response = await getDocument(documentId, false);
+        // IMPORTANT: Always use includeFile=true to get fresh temp links
+        const response = await getDocument(documentId, true); // includeFile=true => fresh temp links
         if (!mounted) return;
 
         if (response && response.success) {
@@ -283,10 +283,13 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const getViewableUrl = (url) => {
     if (!url) return null;
 
-    // Dropbox temporary links sometimes point to an HTML preview page.
-    // Appending raw=1 forces Dropbox to return the file content itself,
-    // which pdf.js can fetch without CORS issues.
+    // Force Dropbox to return the raw file bytes so that pdf.js can fetch them.
     if (url.includes('dropboxusercontent.com') && !url.includes('raw=1')) {
+      return url + (url.includes('?') ? '&raw=1' : '?raw=1');
+    }
+
+    // Public “dl=0/1” links also need ?raw=1 for direct content
+    if (url.includes('dropbox.com/s/') && !url.includes('raw=1')) {
       return url + (url.includes('?') ? '&raw=1' : '?raw=1');
     }
 
@@ -365,7 +368,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const renderFilePreview = (doc) => {
     // If we have a tempFileUrl, use it directly - it's already a complete URL
     // Otherwise, use the filePath which needs to be transformed with getCompleteFileUrl
-    const fileUrl = doc.embedUrl || (doc.filePath ? getCompleteFileUrl(doc.filePath) : null);
+    const fileUrl = doc.embedUrl || doc.downloadUrl || (doc.filePath ? getCompleteFileUrl(doc.filePath) : null);
 
     console.log("Preview file URL:", fileUrl);
 
