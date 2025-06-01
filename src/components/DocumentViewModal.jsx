@@ -5,8 +5,8 @@ import { useStudent } from "../context/StudentContext";
 import { useDocuments } from "../context/DocumentContext";
 import { getCompleteFileUrl } from "../util/urlUtils";
 import { Document, Page, pdfjs } from 'react-pdf';
-// Configure pdf.js worker (needed by react-pdf)
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Use an unpkg-hosted worker that always matches the installed pdf.js version
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
