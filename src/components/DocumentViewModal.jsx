@@ -4,7 +4,9 @@ import { useUser } from "../context/UserContext";
 import { useStudent } from "../context/StudentContext";
 import { useDocuments } from "../context/DocumentContext";
 import { getCompleteFileUrl } from "../util/urlUtils";
-import { Document, Page } from 'react-pdf';
+import { Document, Page, pdfjs } from 'react-pdf';
+// Configure pdf.js worker (needed by react-pdf)
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
@@ -295,56 +297,42 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
     return url;
   };
 
-  // Function to render PDF preview with react-pdf
+  // Render a PDF preview, choosing the best strategy depending on the source
   const renderPdfPreview = (fileUrl) => {
-    // Make URL viewable
+    // Ensure we have a URL that is directly retrievable
     const viewableUrl = getViewableUrl(fileUrl);
 
-    // Detect if it's a Dropbox URL
-    const isDropboxUrl = fileUrl.includes('dropboxusercontent.com') || fileUrl.includes('dropbox.com');
+    // If the file is hosted on Dropbox we often run into CORS / CSP issues.
+    // In that case use Google’s lightweight viewer inside an <iframe>.
+    const isDropbox =
+      viewableUrl.includes('dropboxusercontent.com') ||
+      viewableUrl.includes('dropbox.com');
 
-    // For Dropbox files, use an iframe as it works better with their previews
-    if (isDropboxUrl) {
+    if (isDropbox) {
+      const googleViewer = `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(
+        viewableUrl
+      )}`;
       return (
-        <div className="w-full h-full bg-gray-100">
-          <iframe
-            src={viewableUrl}
-            className="w-full h-full border-0"
-            allow="fullscreen"
-            title="PDF Preview"
-          ></iframe>
-        </div>
+        <iframe
+          src={googleViewer}
+          title="PDF preview"
+          className="w-full h-full border-0"
+        />
       );
     }
 
-    // For other PDFs, try react-pdf but with fallback to iframe
+    // Otherwise try to use react‑pdf so we can paginate
     return (
       <div className="w-full bg-gray-100 flex flex-col h-full">
         <div className="flex-grow flex justify-center p-1 bg-gray-200 h-full">
           <Document
-            file={fileUrl}
+            file={viewableUrl}
             onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={(error) => {
-              console.error('PDF loading error:', error);
-              setPdfError(true);
-            }}
+            onLoadError={onDocumentLoadError}
             className="flex justify-center h-full"
             loading={
               <div className="flex items-center justify-center h-full">
-                <p className="text-gray-600">Cargando PDF...</p>
-              </div>
-            }
-            error={
-              <div className="flex flex-col items-center justify-center h-full">
-                <p className="text-gray-500 mb-4">Usando visor alternativo...</p>
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`}
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  title="Google PDF Viewer"
-                  className="h-[400px] w-full"
-                ></iframe>
+                <p className="text-gray-600">Cargando PDF…</p>
               </div>
             }
           >
@@ -353,16 +341,11 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
               scale={1.2}
               renderTextLayer={false}
               className="shadow-md"
-              loading={
-                <div className="h-full w-full bg-white flex items-center justify-center">
-                  <p className="text-gray-600">Cargando página...</p>
-                </div>
-              }
             />
           </Document>
         </div>
 
-        {!pdfError && numPages && (
+        {numPages && !pdfError && (
           <div className="p-2 bg-gray-100 flex justify-between items-center border-t">
             <button
               disabled={pageNumber <= 1}
@@ -372,7 +355,8 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
               Anterior
             </button>
             <p className="text-sm text-center">
-              Página <span className="font-bold">{pageNumber}</span> de <span className="font-bold">{numPages}</span>
+              Página <span className="font-bold">{pageNumber}</span> de{' '}
+              <span className="font-bold">{numPages}</span>
             </p>
             <button
               disabled={pageNumber >= numPages}
