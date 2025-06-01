@@ -5,8 +5,9 @@ import { useStudent } from "../context/StudentContext";
 import { useDocuments } from "../context/DocumentContext";
 import { getCompleteFileUrl } from "../util/urlUtils";
 import { Document, Page, pdfjs } from 'react-pdf';
-// Use a CDNJS‑hosted worker that sends proper CORS headers
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Always load the worker from a CORS‑friendly CDN
+pdfjs.GlobalWorkerOptions.workerSrc =
+  `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
