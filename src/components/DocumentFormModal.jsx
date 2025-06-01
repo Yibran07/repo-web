@@ -233,81 +233,56 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1">Estudiante</label>
-            <select
+            <label className="block text-gray-700 mb-1">ID Estudiante</label>
+            <input
+              type="number"
+              placeholder="Ej. 123"
               className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               {...register("idStudent", {
-                required: "Debes seleccionar un estudiante",
-                validate: validateSelectField
+                required: "Debes introducir el ID del estudiante"
               })}
-            >
-              <option value="">Seleccionar estudiante</option>
-              {students.map(student => (
-                <option key={student.idStudent} value={student.idStudent}>
-                  {student.name}
-                </option>
-              ))}
-            </select>
+            />
             {errors.idStudent && <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>}
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1">Supervisor</label>
-            <select
-              className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            <label className="block text-gray-700 mb-1">ID Supervisor</label>
+            <input
+              type="number"
+              placeholder="Ej. 456"
+              className={`w-full border ${errors.idSupervisor ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               {...register("idSupervisor", {
-                required: "Debes seleccionar un supervisor",
-                validate: validateSelectField
+                required: "Debes introducir el ID del supervisor"
               })}
-            >
-              <option value="">Seleccionar Supervisor</option>
-              {users
-                .filter(user => user.rol === "supervisor")
-                .map(user => (
-                  <option key={user.idUser} value={user.idUser}>
-                    {user.name}
-                  </option>
-                ))}
-            </select>
+            />
+            {errors.idSupervisor && <p className="text-red-500 text-xs mt-1">{errors.idSupervisor.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-1">Primer revisor</label>
-              <select
-                name="idRevisor1"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("idRevisor1")}
-                required
-              >
-                <option value="">Seleccionar revisor</option>
-                {users
-                  .filter(user => user.rol === "revisor")
-                  .map(user => (
-                    <option key={user.idUser} value={user.idUser}>
-                      {user.name}
-                    </option>
-                  ))}
-              </select>
+              <label className="block text-gray-700 mb-1">ID Primer revisor</label>
+              <input
+                type="number"
+                placeholder="Ej. 789"
+                className={`w-full border ${errors.idRevisor1 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                {...register("idRevisor1", {
+                  required: "Debes introducir el ID del primer revisor"
+                })}
+              />
+              {errors.idRevisor1 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor1.message}</p>}
             </div>
 
             <div>
-              <label className="block text-gray-700 mb-1">Segundo revisor</label>
-              <select
-                name="idRevisor2"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("idRevisor2")}
-                required
-              >
-                <option value="">Seleccionar revisor</option>
-                {users
-                  .filter(user => user.rol === "revisor")
-                  .map(user => (
-                    <option key={user.idUser} value={user.idUser}>
-                      {user.name}
-                    </option>
-                  ))}
-              </select>
+              <label className="block text-gray-700 mb-1">ID Segundo revisor</label>
+              <input
+                type="number"
+                placeholder="Ej. 1011"
+                className={`w-full border ${errors.idRevisor2 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                {...register("idRevisor2", {
+                  required: "Debes introducir el ID del segundo revisor"
+                })}
+              />
+              {errors.idRevisor2 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor2.message}</p>}
             </div>
           </div>
 
