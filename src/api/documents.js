@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios from "./axios";
 
 /* ────────────────────────────── GETs ───────────────────────────── */
 
@@ -21,22 +21,26 @@ export const createDocumentRequest = async (document) => {
   const fd = new FormData();
 
   if (document.title !== undefined) fd.append("title", document.title);
-  if (document.description !== undefined) fd.append("description", document.description);
-  if (document.datePublication !== undefined) fd.append("datePublication", document.datePublication);
+  if (document.description !== undefined)
+    fd.append("description", document.description);
+  if (document.datePublication !== undefined)
+    fd.append("datePublication", document.datePublication);
   if (document.isActive !== undefined) fd.append("isActive", document.isActive);
-  if (document.idStudent !== undefined) fd.append("idStudent", document.idStudent);
-  if (document.idCategory !== undefined) fd.append("idCategory", document.idCategory);
+  if (document.idStudent !== undefined)
+    fd.append("idStudent", document.idStudent);
+  if (document.idCategory !== undefined)
+    fd.append("idCategory", document.idCategory);
 
   if (document.file) {
     fd.append("file", document.file);
   }
-  
+
   if (document.image) {
     fd.append("image", document.image);
   }
 
   const headers = {
-    'Content-Type': 'multipart/form-data',
+    "Content-Type": "multipart/form-data",
   };
 
   try {
@@ -46,21 +50,21 @@ export const createDocumentRequest = async (document) => {
     console.error("Error details:", error.response?.data || error.message);
     throw error;
   }
-}
+};
 
 /* ───────────────────────────── UPDATE ──────────────────────────── */
 //  Para actualizar, si quieres permitir cambiar archivos pasa los nuevos
 //  en 'file' y/o 'image'; si no, omítalos y sólo enviará JSON.
 export const updateDocumentRequest = async (document) => {
-  const hasFile   = !!document.file;
-  const hasImage  = !!document.image;
+  const hasFile = !!document.file;
+  const hasImage = !!document.image;
 
   if (hasFile || hasImage) {
     const fd = new FormData();
     Object.entries(document).forEach(([k, v]) => {
       if (k !== "file" && k !== "image") fd.append(k, String(v));
     });
-    if (hasFile)  fd.append("file",  document.file);
+    if (hasFile) fd.append("file", document.file);
     if (hasImage) fd.append("image", document.image);
 
     return axios.put(`/resources/${document.id}`, fd);
@@ -73,7 +77,7 @@ export const updateDocumentRequest = async (document) => {
 /* ───────────────────────────── DELETE ──────────────────────────── */
 
 export const deleteDocumentRequest = (id) =>
-  axios.delete(`/resources/${id}`);
+  axios.delete(`/resources/${id}/disable`);
 
 /* ──────────────────── vincular recurso ⇄ usuario ───────────────── */
 
