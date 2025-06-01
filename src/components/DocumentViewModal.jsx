@@ -7,7 +7,7 @@ import { getCompleteFileUrl } from "../util/urlUtils";
 import { Document, Page, pdfjs } from 'react-pdf';
 // Always load the worker from a CORS‑friendly CDN
 pdfjs.GlobalWorkerOptions.workerSrc =
-  `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+  `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 import { useCareer } from "../context/CareerContext";
 import { useFaculty } from "../context/FacultyContext";
 
@@ -300,21 +300,22 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   // Render a PDF preview using react‑pdf, and gracefully fall back to
   // Google’s viewer if pdf.js fails (e.g. because of CORS).
   const renderPdfPreview = (fileUrl) => {
-    const viewableUrl = getViewableUrl(fileUrl);
-
-    // If react‑pdf already failed once we show the fallback iframe
-    if (pdfError) {
+    // If the file is hosted on Dropbox we can't load it with pdf.js because of CORS,
+    // so fall back immediately to Google's viewer.
+    if (fileUrl.includes('dropboxusercontent.com')) {
       const googleViewer = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(
-        viewableUrl
+        fileUrl
       )}`;
       return (
         <iframe
           src={googleViewer}
-          title="PDF fallback"
+          title="PDF preview (Google)"
           className="w-full h-full border-0 bg-gray-100"
         />
       );
     }
+
+    const viewableUrl = getViewableUrl(fileUrl);
 
     return (
       <div className="w-full bg-gray-100 flex flex-col h-full">
