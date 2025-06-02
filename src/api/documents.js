@@ -76,13 +76,13 @@ export const updateDocumentRequest = async (document) => {
 
 /* ───────────────────────────── PATCH ──────────────────────────── */
 
-// PATCH /api/resources/:id/disable
+// PATCH /resources/:id/disable
 export const disableDocumentRequest = (id) =>
-  axios.patch(`/api/resources/${id}/disable`);
+  axios.patch(`/resources/${id}/disable`);
 
-// PATCH /api/resources/:id/enable
+// PATCH /resources/:id/enable
 export const enableDocumentRequest = (id) =>
-  axios.patch(`/api/resources/${id}/enable`);
+  axios.patch(`/resources/${id}/enable`);
 
 /* ──────────────────── vincular recurso ⇄ usuario ───────────────── */
 
