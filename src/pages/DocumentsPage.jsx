@@ -34,7 +34,7 @@ export default function DocumentsPage() {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
 
   // Corregir el nombre de la función aquí
-  const { getDocumentsByUser, documents, loading, deleteDocument, documentUserRelations, getDocumentsUser } = useDocuments();
+  const { getDocumentsByUser, documents, loading, disableDocument, enableDocument, documentUserRelations, getDocumentsUser } = useDocuments();
 
   const { user } = useAuth();
   const { students } = useStudent();
@@ -168,32 +168,49 @@ export default function DocumentsPage() {
     }
   };
 
-  // Función para mostrar el modal de confirmación de eliminación
+  // Función para mostrar el modal de confirmación de activación/desactivación
   const handleDeleteConfirmation = (docId) => {
     setDocumentToDelete(docId);
     setShowDeleteModal(true);
   };
 
-  // Función para eliminar un documento después de la confirmación
-  const handleDeleteDocument = async () => {
+  // Función para activar o desactivar un documento después de la confirmación
+  const handleToggleDocumentStatus = async () => {
     if (!documentToDelete) return;
-
+    // Buscar el documento en la lista filtrada
+    const document = filteredDocuments.find(doc => doc.idResource === documentToDelete);
+    if (!document) {
+      showErrorToast("Documento no encontrado");
+      setDocumentToDelete(null);
+      setShowDeleteModal(false);
+      return;
+    }
     try {
-      const result = await deleteDocument(documentToDelete);
+      let result;
+      if (document.isActive) {
+        result = await disableDocument(documentToDelete);
+      } else {
+        result = await enableDocument(documentToDelete);
+      }
       if (result && result.success) {
-        showSuccessToast("Documento eliminado exitosamente");
+        showSuccessToast(
+          document.isActive
+            ? "Documento deshabilitado exitosamente"
+            : "Documento habilitado exitosamente"
+        );
         // Refrescar la lista de documentos
         if (user && user.idUser) {
           getDocumentsByUser(user.idUser);
         }
       } else {
-        showErrorToast(result?.message || "Error al eliminar el documento");
+        showErrorToast(result?.message || "Error al actualizar el estado del documento");
       }
     } catch (error) {
-      console.error("Error al eliminar documento:", error);
-      showErrorToast("Error al eliminar el documento");
+      console.error("Error al actualizar estado del documento:", error);
+      showErrorToast("Error al actualizar el estado del documento");
     } finally {
       setDocumentToDelete(null);
+      setShowDeleteModal(false);
     }
   };
 
@@ -381,11 +398,37 @@ export default function DocumentsPage() {
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteDocument}
-        title="Eliminar documento"
-        message="¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer."
-        confirmButtonText="Eliminar"
-        confirmButtonColor="red"
+        onConfirm={handleToggleDocumentStatus}
+        title={
+          (() => {
+            const doc = filteredDocuments.find(d => d.idResource === documentToDelete);
+            if (!doc) return "Actualizar estado";
+            return doc.isActive ? "Deshabilitar documento" : "Habilitar documento";
+          })()
+        }
+        message={
+          (() => {
+            const doc = filteredDocuments.find(d => d.idResource === documentToDelete);
+            if (!doc) return "¿Estás seguro de que deseas actualizar el estado de este documento?";
+            return doc.isActive
+              ? "¿Estás seguro de que deseas deshabilitar este documento? Los usuarios no podrán acceder a él mientras esté deshabilitado."
+              : "¿Estás seguro de que deseas habilitar este documento? Los usuarios podrán acceder a él nuevamente.";
+          })()
+        }
+        confirmButtonText={
+          (() => {
+            const doc = filteredDocuments.find(d => d.idResource === documentToDelete);
+            if (!doc) return "Confirmar";
+            return doc.isActive ? "Deshabilitar" : "Habilitar";
+          })()
+        }
+        confirmButtonColor={
+          (() => {
+            const doc = filteredDocuments.find(d => d.idResource === documentToDelete);
+            if (!doc) return "blue";
+            return doc.isActive ? "red" : "green";
+          })()
+        }
       />
 
       <DocumentViewModal
