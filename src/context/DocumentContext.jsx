@@ -142,24 +142,20 @@ export function DocumentProvider({ children }) {
     }
   }, []);
 
-  const updateDocument = async (id, document) => {
+  const updateDocument = async (document) => {
     try {
       setLoading(true);
-      const res = await updateDocumentRequest(id, document);
 
-      // Después de actualizar, forzar recarga de todos los documentos desde el backend
-      await getDocuments(true); // ← Esto es clave
+      // ahora le pasamos idResource explícito
+      const res = await updateDocumentRequest(document.idResource, document);
 
-      return {
-        success: true,
-        data: res.data
-      };
+      // tras un PUT exitoso, refrescamos toda la lista
+      await getDocuments(true);
+
+      return { success: true, data: res.data };
     } catch (err) {
       console.error("Error actualizando documento:", err);
-      return {
-        success: false,
-        error: err
-      };
+      return { success: false, error: err };
     } finally {
       setLoading(false);
     }

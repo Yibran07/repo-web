@@ -55,7 +55,7 @@ export const createDocumentRequest = async (document) => {
 /* ───────────────────────────── UPDATE ──────────────────────────── */
 //  Para actualizar, si quieres permitir cambiar archivos pasa los nuevos
 //  en 'file' y/o 'image'; si no, omítalos y sólo enviará JSON.
-export const updateDocumentRequest = async (document) => {
+export const updateDocumentRequest = async (id, document) => {
   const hasFile = !!document.file;
   const hasImage = !!document.image;
 
@@ -67,11 +67,10 @@ export const updateDocumentRequest = async (document) => {
     if (hasFile) fd.append("file", document.file);
     if (hasImage) fd.append("image", document.image);
 
-    return axios.put(`/resources/${document.id}`, fd);
+    return axios.put(`/resources/${id}`, fd); // ← usa el id correcto
   }
 
-  // Sólo campos de texto → JSON normal
-  return axios.put(`/resources/${document.id}`, document);
+  return axios.put(`/resources/${id}`, document); // ← idem
 };
 
 /* ───────────────────────────── PATCH ──────────────────────────── */
