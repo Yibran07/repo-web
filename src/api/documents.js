@@ -74,10 +74,15 @@ export const updateDocumentRequest = async (document) => {
   return axios.put(`/resources/${document.id}`, document);
 };
 
-/* ───────────────────────────── DELETE ──────────────────────────── */
+/* ───────────────────────────── PATCH ──────────────────────────── */
 
-export const deleteDocumentRequest = (id) =>
-  axios.delete(`/resources/${id}/disable`);
+// PATCH /api/resources/:id/disable
+export const disableDocumentRequest = (id) =>
+  axios.patch(`/api/resources/${id}/disable`);
+
+// PATCH /api/resources/:id/enable
+export const enableDocumentRequest = (id) =>
+  axios.patch(`/api/resources/${id}/enable`);
 
 /* ──────────────────── vincular recurso ⇄ usuario ───────────────── */
 
