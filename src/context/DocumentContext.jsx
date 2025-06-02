@@ -149,11 +149,13 @@ export function DocumentProvider({ children }) {
       setDocuments(prevDocuments => {
         if (!prevDocuments.resources) return prevDocuments;
 
+        const updatedResources = prevDocuments.resources.map(doc =>
+          doc.idResource === id ? res.data.resource : doc
+        );
+
         return {
           ...prevDocuments,
-          resources: prevDocuments.resources.map(doc =>
-            doc.idResource === id ? res.data.resource : doc
-          )
+          resources: updatedResources
         };
       });
       return {
