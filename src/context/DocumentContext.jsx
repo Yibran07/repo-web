@@ -145,9 +145,25 @@ export function DocumentProvider({ children }) {
   const updateDocument = async (data) => {
     try {
       setLoading(true);
-      const res = await updateDocumentRequest(data.idResource, data);
 
-      await getDocuments(true); // recarga lista
+      // 1)Llamamos al backend con el id correcto
+      const res = await updateDocumentRequest(data.idResource, data);
+      const updated = res.data.resource;              // recurso ya modificado
+
+      // 2)Actualizamos la lista local al instante
+      setDocuments(prev => {
+        // ‑Si la estructura todavía no tiene `resources` devolvemos tal cual
+        if (!prev.resources) return prev;
+
+        const newResources = prev.resources.map(r =>
+          r.idResource === updated.idResource ? updated : r
+        );
+
+        return { ...prev, resources: newResources };
+      });
+
+      // 3)En segundo plano sincronizamos de nuevo (no bloquea la UI)
+      getDocuments(true).catch(() => { });
 
       return { success: true, data: res.data };
     } catch (err) {

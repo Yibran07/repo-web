@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 /**
  * Show a success toast notification for entity operations
@@ -15,7 +15,7 @@ export const showSuccessToast = (entityType, action, options = {}) => {
     pauseOnHover: true,
     draggable: true,
     progress: undefined,
-    toastId: `${entityType.toLowerCase()}-${action}-success` // Prevents duplicate toasts
+    toastId: `${entityType.toLowerCase()}-${action}-success`, // Prevents duplicate toasts
   };
 
   const message = `¡${entityType} ${action} con éxito!`;
@@ -36,7 +36,7 @@ export const showErrorToast = (message, options = {}) => {
     pauseOnHover: true,
     draggable: true,
     progress: undefined,
-    toastId: `error-${Date.now()}` // Unique ID based on timestamp
+    toastId: `error-${Date.now()}`, // Unique ID based on timestamp
   };
 
   toast.error(message, { ...defaultOptions, ...options });
@@ -55,7 +55,7 @@ export const showInfoToast = (message, options = {}) => {
     closeOnClick: true,
     pauseOnHover: true,
     draggable: true,
-    progress: undefined
+    progress: undefined,
   };
 
   toast.info(message, { ...defaultOptions, ...options });
