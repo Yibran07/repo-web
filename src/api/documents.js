@@ -84,11 +84,6 @@ export const disableDocumentRequest = (id) =>
 export const enableDocumentRequest = (id) =>
   axios.patch(`/api/resources/${id}/enable`);
 
-/* ───────────────────────────── DELETE ──────────────────────────── */
-
-export const deleteDocumentRequest = (id) =>
-  axios.delete(`/api/resources/${id}/force`);
-
 /* ──────────────────── vincular recurso ⇄ usuario ───────────────── */
 
 export const createDocumentByUserRequest = (idUser, idResource) =>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, deleteDocumentRequest, getDocumentRequest, getDocumentsUserRequest, disableDocumentRequest, enableDocumentRequest } from "../api/documents";
+import { createDocumentRequest, getDocumentsRequest, getDocumentsByUserRequest, createDocumentByUserRequest, updateDocumentRequest, getDocumentRequest, getDocumentsUserRequest, disableDocumentRequest, enableDocumentRequest } from "../api/documents";
 
 const DocumentContext = createContext();
 
@@ -164,27 +164,6 @@ export function DocumentProvider({ children }) {
     }
   }
 
-  const deleteDocument = async (id) => {
-    try {
-      setLoading(true);
-      const res = await deleteDocumentRequest(id);
-      setDocuments(prevDocuments =>
-        prevDocuments.filter(doc => doc.idDocument !== id)
-      );
-      return {
-        success: true,
-        data: res.data
-      };
-    } catch (err) {
-      console.error(err);
-      return {
-        success: false,
-        error: err
-      };
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const disableDocument = async (id) => {
     try {
@@ -309,7 +288,6 @@ export function DocumentProvider({ children }) {
       createDocument,
       getDocuments,
       updateDocument,
-      deleteDocument,
       disableDocument,
       enableDocument,
       getDocumentsByUser,
