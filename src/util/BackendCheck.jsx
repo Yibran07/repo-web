@@ -3,7 +3,7 @@ import { showErrorToast, showSuccessToast } from "./toastUtils";
 
 import { useEffect } from "react";
 
-export default function BackendCheck({ children }) { 
+export default function BackendCheck({ children }) {
     useEffect(() => {
         axios.get(import.meta.env.VITE_API_URL)
             .then(res => {
