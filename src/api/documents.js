@@ -66,7 +66,9 @@ export const updateDocumentRequest = async (id, data) => {
     });
     if (hasFile) fd.append("file", data.file);
     if (hasImage) fd.append("image", data.image);
-    return axios.put(`/resources/${id}`, fd);
+    return axios.put(`/resources/${id}`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   }
 
   return axios.put(`/resources/${id}`, data);
