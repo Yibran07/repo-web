@@ -146,24 +146,16 @@ export function DocumentProvider({ children }) {
     try {
       setLoading(true);
       const res = await updateDocumentRequest(id, document);
-      setDocuments(prevDocuments => {
-        if (!prevDocuments.resources) return prevDocuments;
 
-        const updatedResources = prevDocuments.resources.map(doc =>
-          doc.idResource === id ? res.data.resource : doc
-        );
+      // Después de actualizar, forzar recarga de todos los documentos desde el backend
+      await getDocuments(true); // ← Esto es clave
 
-        return {
-          ...prevDocuments,
-          resources: updatedResources
-        };
-      });
       return {
         success: true,
         data: res.data
       };
     } catch (err) {
-      console.error(err);
+      console.error("Error actualizando documento:", err);
       return {
         success: false,
         error: err
@@ -171,7 +163,7 @@ export function DocumentProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
 
   const disableDocument = async (id) => {
