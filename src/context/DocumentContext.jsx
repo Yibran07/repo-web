@@ -146,9 +146,16 @@ export function DocumentProvider({ children }) {
     try {
       setLoading(true);
       const res = await updateDocumentRequest(id, document);
-      setDocuments(prevDocuments =>
-        prevDocuments.map(doc => doc.idDocument === id ? res.data.document : doc)
-      );
+      setDocuments(prevDocuments => {
+        if (!prevDocuments.resources) return prevDocuments;
+
+        return {
+          ...prevDocuments,
+          resources: prevDocuments.resources.map(doc =>
+            doc.idResource === id ? res.data.resource : doc
+          )
+        };
+      });
       return {
         success: true,
         data: res.data
