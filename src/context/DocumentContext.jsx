@@ -142,15 +142,12 @@ export function DocumentProvider({ children }) {
     }
   }, []);
 
-  const updateDocument = async (document) => {
+  const updateDocument = async (data) => {
     try {
       setLoading(true);
+      const res = await updateDocumentRequest(data.idResource, data);
 
-      // ahora le pasamos idResource explícito
-      const res = await updateDocumentRequest(document.idResource, document);
-
-      // tras un PUT exitoso, refrescamos toda la lista
-      await getDocuments(true);
+      await getDocuments(true); // recarga lista
 
       return { success: true, data: res.data };
     } catch (err) {

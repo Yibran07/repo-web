@@ -55,22 +55,21 @@ export const createDocumentRequest = async (document) => {
 /* ───────────────────────────── UPDATE ──────────────────────────── */
 //  Para actualizar, si quieres permitir cambiar archivos pasa los nuevos
 //  en 'file' y/o 'image'; si no, omítalos y sólo enviará JSON.
-export const updateDocumentRequest = async (id, document) => {
-  const hasFile = !!document.file;
-  const hasImage = !!document.image;
+export const updateDocumentRequest = async (id, data) => {
+  const hasFile = !!data.file;
+  const hasImage = !!data.image;
 
   if (hasFile || hasImage) {
     const fd = new FormData();
-    Object.entries(document).forEach(([k, v]) => {
+    Object.entries(data).forEach(([k, v]) => {
       if (k !== "file" && k !== "image") fd.append(k, String(v));
     });
-    if (hasFile) fd.append("file", document.file);
-    if (hasImage) fd.append("image", document.image);
-
-    return axios.put(`/resources/${id}`, fd); // ← usa el id correcto
+    if (hasFile) fd.append("file", data.file);
+    if (hasImage) fd.append("image", data.image);
+    return axios.put(`/resources/${id}`, fd);
   }
 
-  return axios.put(`/resources/${id}`, document); // ← idem
+  return axios.put(`/resources/${id}`, data);
 };
 
 /* ───────────────────────────── PATCH ──────────────────────────── */

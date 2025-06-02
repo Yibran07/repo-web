@@ -101,10 +101,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
       setLoading(true);
 
       if (isEditing) {
-        const updateData = {
-          ...data,
-          id: document.idResource
-        };
+        const updateData = { ...data };
 
         if (data.file && data.file[0]) {
           updateData.file = data.file[0];
