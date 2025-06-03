@@ -212,7 +212,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
             <div className='w-full max-w-2xl mx-auto'>
               <form onSubmit={handleSearchSubmit} className='flex'>
                 <input
-                  className='py-2 px-4 rounded-l text-[#999999] w-full'
+                  className='py-2 px-4 rounded-l w-full border-2 border-white text-white placeholder:text-white focus:outline-none focus:ring-2 focus:ring-white'
                   placeholder='Buscar por título o autor...'
                   value={searchTerm}
                   onChange={handleSearchChange}
