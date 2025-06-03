@@ -457,13 +457,6 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           <div className="flex justify-end space-x-3 mt-6">
             <button
               type="button"
-              onClick={copyApaToClipboard}
-              className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-            >
-              {apaCopied ? "¡Copiado!" : "Copiar cita APA‑7"}
-            </button>
-            <button
-              type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
             >
