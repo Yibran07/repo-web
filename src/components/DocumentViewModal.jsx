@@ -29,6 +29,8 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [pdfError, setPdfError] = useState(false);
+  // Estado para copiar cita APA‑7
+  const [apaCopied, setApaCopied] = useState(false);
 
   // Prefetch document data when modal is opened
   useEffect(() => {
@@ -212,6 +214,33 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
       day: 'numeric'
     });
   };
+
+  // ---------------------------------------------------------------
+  // Helpers para referencia APA‑7
+  const buildApaCitation = (doc) => {
+    if (!doc) return "";
+    const student = students.find((s) => s.idStudent === doc.idStudent);
+    const author = student
+      ? `${student.name}${student.lastName ? " " + student.lastName : ""}`
+      : "Autor, A. A.";
+    const year = doc.datePublication
+      ? new Date(doc.datePublication).getFullYear()
+      : "s.f.";
+    const title = doc.title || "Título del trabajo";
+    return `${author}. (${year}). ${title} [Tesis de licenciatura]. Repositorio Institucional UTRes Repo.`;
+  };
+
+  const copyApaToClipboard = async () => {
+    try {
+      const citation = buildApaCitation(document);
+      await navigator.clipboard.writeText(citation);
+      setApaCopied(true);
+      setTimeout(() => setApaCopied(false), 2500);
+    } catch (err) {
+      console.error("No se pudo copiar la cita:", err);
+    }
+  };
+  // ---------------------------------------------------------------
 
   // Define displayParticipantsByRoles with updated layout
   const displayParticipantsByRoles = () => {
@@ -538,6 +567,13 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
                       <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </a>
+                  <button
+                    onClick={copyApaToClipboard}
+                    className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                    title="Copiar cita APA‑7"
+                  >
+                    {apaCopied ? "¡Copiado!" : "APA‑7"}
+                  </button>
                 </div>
               </div>
               <div className="border rounded-lg overflow-hidden">

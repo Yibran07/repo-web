@@ -221,10 +221,6 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
 
   if (!isOpen) return null;
 
-  // Check for required select fields
-  const validateSelectField = (value) => {
-    return value !== "" && value !== null && value !== undefined;
-  };
 
   return (
     <div className="fixed inset-0 flex justify-center items-center" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50 }}>
