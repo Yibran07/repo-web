@@ -16,6 +16,37 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   /* ----------  APA7 citation helpers ----------------------------- */
   const [apaCopied, setApaCopied] = useState(false);
 
+  // --- autocompletado de IDs (supervisor / revisores) -------------
+  const [suggestions, setSuggestions] = useState({
+    idSupervisor: [],
+    idRevisor1: [],
+    idRevisor2: [],
+  });
+  const roleByField = {
+    idSupervisor: "supervisor",
+    idRevisor1: "revisor",
+    idRevisor2: "revisor",
+  };
+
+  const handleIdInputChange = (field, value) => {
+    setValue(field, value, { shouldValidate: true });
+    if (!value) {
+      setSuggestions((prev) => ({ ...prev, [field]: [] }));
+      return;
+    }
+    const matches = users
+      .filter(
+        (u) => u.rol === roleByField[field] && String(u.idUser).startsWith(String(value))
+      )
+      .slice(0, 5); // máx. 5 globitos
+    setSuggestions((prev) => ({ ...prev, [field]: matches }));
+  };
+
+  const selectSuggestion = (field, user) => {
+    setValue(field, user.idUser, { shouldValidate: true });
+    setSuggestions((prev) => ({ ...prev, [field]: [] }));
+  };
+
   const buildApaCitation = (formValues, studentsList) => {
     /*  Formato base:
         Apellido,N.N.(año). Título del trabajo [Tesis de licenciatura]. Repositorio Institucional, Universidad.
@@ -273,43 +304,79 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             {errors.idStudent && <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-gray-700 mb-1">ID Supervisor</label>
+          <div className="relative">
+            <label className="block text-gray-700 mb-1">ID Supervisor</label>
             <input
               type="number"
-              placeholder="Ej. 456"
+              placeholder="Ej.456"
               className={`w-full border ${errors.idSupervisor ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("idSupervisor", {
-                required: "Debes introducir el ID del supervisor"
-              })}
+              value={getValues("idSupervisor") || ""}
+              onChange={(e) => handleIdInputChange("idSupervisor", e.target.value)}
             />
+            {suggestions.idSupervisor.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                {suggestions.idSupervisor.map((u) => (
+                  <li
+                    key={u.idUser}
+                    onClick={() => selectSuggestion("idSupervisor", u)}
+                    className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                  >
+                    #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                  </li>
+                ))}
+              </ul>
+            )}
             {errors.idSupervisor && <p className="text-red-500 text-xs mt-1">{errors.idSupervisor.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="relative">
               <label className="block text-gray-700 mb-1">ID Primer revisor</label>
               <input
                 type="number"
                 placeholder="Ej. 789"
                 className={`w-full border ${errors.idRevisor1 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                {...register("idRevisor1", {
-                  required: "Debes introducir el ID del primer revisor"
-                })}
+                value={getValues("idRevisor1") || ""}
+                onChange={(e) => handleIdInputChange("idRevisor1", e.target.value)}
               />
+              {suggestions.idRevisor1.length > 0 && (
+                <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                  {suggestions.idRevisor1.map((u) => (
+                    <li
+                      key={u.idUser}
+                      onClick={() => selectSuggestion("idRevisor1", u)}
+                      className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                    >
+                      #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                    </li>
+                  ))}
+                </ul>
+              )}
               {errors.idRevisor1 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor1.message}</p>}
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-gray-700 mb-1">ID Segundo revisor</label>
               <input
                 type="number"
                 placeholder="Ej. 1011"
                 className={`w-full border ${errors.idRevisor2 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                {...register("idRevisor2", {
-                  required: "Debes introducir el ID del segundo revisor"
-                })}
+                value={getValues("idRevisor2") || ""}
+                onChange={(e) => handleIdInputChange("idRevisor2", e.target.value)}
               />
+              {suggestions.idRevisor2.length > 0 && (
+                <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                  {suggestions.idRevisor2.map((u) => (
+                    <li
+                      key={u.idUser}
+                      onClick={() => selectSuggestion("idRevisor2", u)}
+                      className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                    >
+                      #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                    </li>
+                  ))}
+                </ul>
+              )}
               {errors.idRevisor2 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor2.message}</p>}
             </div>
           </div>
