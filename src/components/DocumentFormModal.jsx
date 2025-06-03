@@ -16,8 +16,9 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   /* ----------  APA7 citation helpers ----------------------------- */
   const [apaCopied, setApaCopied] = useState(false);
 
-  // --- autocompletado de IDs (supervisor / revisores) -------------
+  // --- autocompletado de IDs (supervisor / revisores / estudiante) -------------
   const [suggestions, setSuggestions] = useState({
+    idStudent: [],
     idSupervisor: [],
     idRevisor1: [],
     idRevisor2: [],
@@ -26,25 +27,43 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
     idSupervisor: "supervisor",
     idRevisor1: "revisor",
     idRevisor2: "revisor",
+    // idStudent does not need role filtering
   };
 
   const handleIdInputChange = (field, value) => {
     setValue(field, value, { shouldValidate: true });
+
     if (!value) {
       setSuggestions((prev) => ({ ...prev, [field]: [] }));
       return;
     }
-    const matches = users
-      .filter(
-        (u) => u.rol === roleByField[field] && String(u.idUser).startsWith(String(value))
-      )
-      .slice(0, 5); // máx. 5 globitos
-    setSuggestions((prev) => ({ ...prev, [field]: matches }));
+
+    // Autocomplete logic for students vs. users
+    if (field === "idStudent") {
+      const matches = students
+        .filter((s) => String(s.idStudent).startsWith(String(value)))
+        .slice(0, 5); // máx. 5 globitos
+      setSuggestions((prev) => ({ ...prev, idStudent: matches }));
+    } else {
+      const matches = users
+        .filter(
+          (u) =>
+            u.rol === roleByField[field] &&
+            String(u.idUser).startsWith(String(value))
+        )
+        .slice(0, 5);
+      setSuggestions((prev) => ({ ...prev, [field]: matches }));
+    }
   };
 
-  const selectSuggestion = (field, user) => {
-    setValue(field, user.idUser, { shouldValidate: true });
-    setSuggestions((prev) => ({ ...prev, [field]: [] }));
+  const selectSuggestion = (field, item) => {
+    if (field === "idStudent") {
+      setValue(field, item.idStudent, { shouldValidate: true });
+      setSuggestions((prev) => ({ ...prev, idStudent: [] }));
+    } else {
+      setValue(field, item.idUser, { shouldValidate: true });
+      setSuggestions((prev) => ({ ...prev, [field]: [] }));
+    }
   };
 
   const buildApaCitation = (formValues, studentsList) => {
@@ -291,17 +310,34 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             ></textarea>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-gray-700 mb-1">ID Estudiante</label>
             <input
               type="number"
-              placeholder="Ej. 123"
-              className={`w-full border ${errors.idStudent ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              {...register("idStudent", {
-                required: "Debes introducir el ID del estudiante"
-              })}
+              placeholder="Ej. 123"
+              className={`w-full border ${errors.idStudent ? "border-red-500" : "border-gray-300"
+                } rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={getValues("idStudent") || ""}
+              onChange={(e) => handleIdInputChange("idStudent", e.target.value)}
             />
-            {errors.idStudent && <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>}
+            {suggestions.idStudent.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                {suggestions.idStudent.map((s) => (
+                  <li
+                    key={s.idStudent}
+                    onClick={() => selectSuggestion("idStudent", s)}
+                    className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                  >
+                    #{s.idStudent} — {s.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {errors.idStudent && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.idStudent.message}
+              </p>
+            )}
           </div>
 
           <div className="relative">
