@@ -8,10 +8,22 @@ import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
 const CareerFormModal = ({ isOpen, onClose, career }) => {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset, setValue } = useForm();
   const { createCareer, updateCareer } = useCareer();
   const { faculties } = useFaculty();
-  
+
+  // Normaliza: Primera letra mayúscula, resto en minúsculas
+  const normalize = (str) =>
+    str
+      .trim()
+      .toLowerCase()
+      .replace(/^./, (c) => c.toUpperCase());
+
+  const handleNameBlur = (e) => {
+    const normalized = normalize(e.target.value);
+    setValue("name", normalized, { shouldValidate: true });
+  };
+
   const isEditing = !!career;
   const modalTitle = isEditing ? "Editar Carrera" : "Agregar Carrera";
   const buttonText = isEditing ? "Actualizar" : "Guardar";
@@ -23,6 +35,7 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
         name: career.name,
         idFaculty: career.idFaculty || null
       });
+      setValue("name", normalize(career.name));
     } else {
       reset({
         idCareer: null,
@@ -30,29 +43,30 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
         idFaculty: null
       });
     }
-  }, [career, reset]);
+  }, [career, reset, setValue]);
 
   const onSubmit = handleSubmit(async (career) => {
     try {
       setLoading(true);
       let result;
+      career.name = normalize(career.name);
 
       if (!isEditing) {
         result = await createCareer(career);
         if (result && result.success) {
           showSuccessToast("Carrera", "creada");
-        }else{
+        } else {
           showErrorToast("Error al crear la carrera")
         }
-      }else{
+      } else {
         result = await updateCareer(career.idCareer, career);
         if (result && result.success) {
           showSuccessToast("Carrera", "actualizada");
-        }else{
+        } else {
           showErrorToast("Error al actualizar la carrera")
         }
       }
-      
+
       onClose();
     } catch (err) {
       console.error(err);
@@ -68,7 +82,7 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
       <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-[#003DA5]">{modalTitle}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -85,6 +99,7 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
               id="name"
               type="text"
               {...register("name", { required: true })}
+              onBlur={handleNameBlur}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nombre de la carrera"
               required
@@ -94,18 +109,18 @@ const CareerFormModal = ({ isOpen, onClose, career }) => {
           <div>
             <label htmlFor="idFaculty" className="block text-gray-700 mb-1">Facultad</label>
             <select
-                name="idFaculty"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("idFaculty")}
-                required
-              >
-                <option value="">Seleccionar facultad</option>
-                {faculties.map(faculty => (
-                  <option key={faculty.idFaculty} value={faculty.idFaculty}>
-                    {faculty.name}
-                  </option>
-                ))}
-              </select>
+              name="idFaculty"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {...register("idFaculty")}
+              required
+            >
+              <option value="">Seleccionar facultad</option>
+              {faculties.map(faculty => (
+                <option key={faculty.idFaculty} value={faculty.idFaculty}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">

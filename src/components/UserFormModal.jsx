@@ -5,9 +5,24 @@ import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
 const UserFormModal = ({ isOpen, onClose, user }) => {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+
+  // Helper: "Juan PÉrez lÓpez" -> "Juan Pérez López"
+  const normalizeWords = (str = "") =>
+    str
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Normalize when the user leaves the input
+  const handleNameBlur = () => {
+    const current = getValues("name");
+    setValue("name", normalizeWords(current));
+  };
+
+  const { register, handleSubmit, reset, getValues, setValue, formState: { errors } } = useForm();
   const { createUser, updateUser, errors: registerErrors } = useUser();
-  
+
   const isEditing = !!user;
   const modalTitle = isEditing ? "Editar Revisor" : "Agregar Revisor";
   const buttonText = isEditing ? "Actualizar" : "Guardar";
@@ -16,7 +31,7 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
     if (user) {
       reset({
         idUser: user.idUser,
-        name: user.name,
+        name: normalizeWords(user.name),
         email: user.email,
         rol: user.rol,
         isActive: user.isActive,
@@ -34,6 +49,8 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
 
   const onSubmit = handleSubmit(async (user) => {
     try {
+      // Normalize name before submit
+      user.name = normalizeWords(user.name);
       setLoading(true);
       let result;
 
@@ -41,18 +58,18 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
         result = await createUser(user);
         if (result && result.success) {
           showSuccessToast("Usuario", "creado");
-        }else{
+        } else {
           showErrorToast("Error al crear el usuario")
         }
       } else {
         result = await updateUser(user.idUser, user);
         if (result && result.success) {
           showSuccessToast("Usuario", "actualizado");
-        }else{
+        } else {
           showErrorToast("Error al actualizar el usuario")
         }
       }
-      
+
       if (result && result.success) {
         onClose();
       }
@@ -70,7 +87,7 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
       <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-[#003DA5]">{modalTitle}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -97,6 +114,7 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
               id="name"
               type="text"
               {...register("name", { required: true })}
+              onBlur={handleNameBlur}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nombre del usuario"
               required
@@ -108,8 +126,8 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
             <input
               id="email"
               type="email"
-              {...register("email", { 
-                required: "El correo electrónico es obligatorio", 
+              {...register("email", {
+                required: "El correo electrónico es obligatorio",
                 pattern: {
                   value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                   message: "Ingrese un correo electrónico válido"
@@ -145,26 +163,26 @@ const UserFormModal = ({ isOpen, onClose, user }) => {
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-                <option value="">Selecciona un rol </option>
-                <option value="director">Director</option>
-                <option value="revisor">Revisor</option>
-                <option value="supervisor">Supervisor</option>
+              <option value="">Selecciona un rol </option>
+              <option value="director">Director</option>
+              <option value="revisor">Revisor</option>
+              <option value="supervisor">Supervisor</option>
             </select>
           </div>
 
           {isEditing && (
             <div>
-                <label htmlFor="isActive" className="block text-gray-700 mb-1">Estado</label>
-                <select
-                    id="isActive"
-                    {...register("isActive", { required: true })}
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                >
+              <label htmlFor="isActive" className="block text-gray-700 mb-1">Estado</label>
+              <select
+                id="isActive"
+                {...register("isActive", { required: true })}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
                 <option value="">Seleccionar estado</option>
                 <option value="1">Activo</option>
                 <option value="0">Inactivo</option>
-                </select>
+              </select>
             </div>
           )}
 

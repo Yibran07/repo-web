@@ -5,11 +5,15 @@ import { useFaculty } from "../context/FacultyContext";
 
 import { showErrorToast, showSuccessToast } from "../util/toastUtils";
 
+// Capitalize first letter, rest lowercase
+const formatName = (str = "") =>
+  str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
 const FacultyFormModal = ({ isOpen, onClose, faculty }) => {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset } = useForm();
-  const {createFaculty, updateFaculty} = useFaculty();
-  
+  const { register, handleSubmit, reset, setValue } = useForm();
+  const { createFaculty, updateFaculty } = useFaculty();
+
   const isEditing = !!faculty;
   const modalTitle = isEditing ? "Editar Facultad" : "Agregar Facultad";
   const buttonText = isEditing ? "Actualizar" : "Guardar";
@@ -18,7 +22,7 @@ const FacultyFormModal = ({ isOpen, onClose, faculty }) => {
     if (faculty) {
       reset({
         idFaculty: faculty.idFaculty,
-        name: faculty.name,
+        name: formatName(faculty.name),
       });
     } else {
       reset({
@@ -31,24 +35,25 @@ const FacultyFormModal = ({ isOpen, onClose, faculty }) => {
   const onSubmit = handleSubmit(async (faculty) => {
     try {
       setLoading(true);
-      let result; 
+      let result;
+      faculty.name = formatName(faculty.name.trim());
 
       if (!isEditing) {
         result = await createFaculty(faculty);
         if (result && result.success) {
           showSuccessToast("Facultad", "creada");
-        }else{
+        } else {
           showErrorToast("Error al crear la Facultad")
         }
-      }else{
+      } else {
         result = await updateFaculty(faculty.idFaculty, faculty);
         if (result && result.success) {
           showSuccessToast("Facultad", "actualizada");
-        }else{
+        } else {
           showErrorToast("Error al actualizar la Facultad")
         }
       }
-      
+
       if (result && result.success) {
         onClose();
       }
@@ -66,7 +71,7 @@ const FacultyFormModal = ({ isOpen, onClose, faculty }) => {
       <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-[#003DA5]">{modalTitle}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -83,6 +88,11 @@ const FacultyFormModal = ({ isOpen, onClose, faculty }) => {
               id="name"
               type="text"
               {...register("name", { required: true })}
+              onBlur={(e) => {
+                const formatted = formatName(e.target.value);
+                e.target.value = formatted;
+                setValue('name', formatted, { shouldValidate: true });
+              }}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nombre de la facultad"
               required
