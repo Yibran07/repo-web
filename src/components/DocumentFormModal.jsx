@@ -12,7 +12,42 @@ import { showSuccessToast, showErrorToast } from "../util/toastUtils";
 
 const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm();
+  const { register, handleSubmit, reset, getValues, formState: { errors }, setValue } = useForm();
+  /* ----------  APA7 citation helpers ----------------------------- */
+  const [apaCopied, setApaCopied] = useState(false);
+
+  const buildApaCitation = (formValues, studentsList) => {
+    /*  Formato base:
+        Apellido,N.N.(año). Título del trabajo [Tesis de licenciatura]. Repositorio Institucional, Universidad.
+    */
+    const student = studentsList.find((s) => s.idStudent === Number(formValues.idStudent));
+    const author =
+      student && student.name
+        ? `${student.name} ${student.lastName || ""}`
+        : "Autor,A.A.";
+
+    const year = formValues.datePublication
+      ? new Date(formValues.datePublication).getFullYear()
+      : "s.f.";
+
+    const title = formValues.title || "Título del trabajo";
+
+    return `${author}. (${year}). ${title} [Tesis de licenciatura]. Repositorio Institucional UTRes Repo.`;
+  };
+
+  const copyApaToClipboard = async () => {
+    try {
+      const currentValues = getValues();    // react‑hook‑form helper
+      const citation = buildApaCitation(currentValues, students);
+      await navigator.clipboard.writeText(citation);
+      setApaCopied(true);
+      showSuccessToast("Referencia copiada");
+      setTimeout(() => setApaCopied(false), 2500);
+    } catch (err) {
+      console.error(err);
+      showErrorToast("No se pudo copiar la cita");
+    }
+  };
   const { createDocument, createDocumentByUser, updateDocument, documentUserRelations } = useDocuments();
   const { user } = useAuth();
   const { categories } = useCategory();
@@ -257,10 +292,10 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-1">ID Primer revisor</label>
+              <label className="block text-gray-700 mb-1">ID Primer revisor</label>
               <input
                 type="number"
-                placeholder="Ej. 789"
+                placeholder="Ej. 789"
                 className={`w-full border ${errors.idRevisor1 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 {...register("idRevisor1", {
                   required: "Debes introducir el ID del primer revisor"
@@ -270,10 +305,10 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
             </div>
 
             <div>
-              <label className="block text-gray-700 mb-1">ID Segundo revisor</label>
+              <label className="block text-gray-700 mb-1">ID Segundo revisor</label>
               <input
                 type="number"
-                placeholder="Ej. 1011"
+                placeholder="Ej. 1011"
                 className={`w-full border ${errors.idRevisor2 ? 'border-red-500' : 'border-gray-300'} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 {...register("idRevisor2", {
                   required: "Debes introducir el ID del segundo revisor"
@@ -357,6 +392,13 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">
+            <button
+              type="button"
+              onClick={copyApaToClipboard}
+              className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+            >
+              {apaCopied ? "¡Copiado!" : "Copiar cita APA‑7"}
+            </button>
             <button
               type="button"
               onClick={onClose}
