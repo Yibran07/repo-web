@@ -37,14 +37,14 @@ const StudentFormModal = ({ isOpen, onClose, student }) => {
       reset({
         idStudent: student.idStudent,
         name: capitalizeWords(student.name),
-        isActive: student.isActive,
+        isActive: String(student.isActive),
         idCareer: student.idCareer,
       });
     } else {
       reset({
         idStudent: null,
         name: "",
-        isActive: 1,
+        isActive: "1",
         idCareer: null,
       });
     }
@@ -63,6 +63,8 @@ const StudentFormModal = ({ isOpen, onClose, student }) => {
 
       // normalizar antes de enviar
       payload.name = capitalizeWords(payload.name);
+      // Ensure numeric value before hitting API
+      payload.isActive = Number(payload.isActive);
 
       let result;
       if (isEditing) {
