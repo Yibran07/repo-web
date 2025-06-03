@@ -2,60 +2,67 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { showSuccessToast, showErrorToast } from "../util/toastUtils";
-
 import { useCategory } from "../context/CategoryContext";
+
+/* ────────────────────────────────────────────────────────────── */
+/* Helper – capitaliza solo la primera letra y pone el resto en
+   minúsculas. Si recibe null/undefined, devuelve ""              */
+const normalize = (str = "") =>
+  str.length
+    ? str[0].toUpperCase() + str.slice(1).toLowerCase()
+    : "";
 
 const CategoryFormModal = ({ isOpen, onClose, category }) => {
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, reset } = useForm();
-  const {createCategory, updateCategory} = useCategory();
-  
+  const { createCategory, updateCategory } = useCategory();
+
   const isEditing = !!category;
   const modalTitle = isEditing ? "Editar Categoría" : "Agregar Categoría";
   const buttonText = isEditing ? "Actualizar" : "Guardar";
 
+  /* ───────────── Carga inicial (modo edición o nuevo) ──────────── */
   useEffect(() => {
     if (category) {
       reset({
         idCategory: category.idCategory,
-        name: category.name,
-        description: category.description || ""
+        name: normalize(category.name),
+        description: normalize(category.description)
       });
     } else {
-      reset({
-        idCategory: null,
-        name: "",
-        description: ""
-      });
+      reset({ idCategory: null, name: "", description: "" });
     }
   }, [category, reset]);
 
-  const onSubmit = handleSubmit(async (category) => {
+  /* ────────────────────────── Submit ──────────────────────────── */
+  const onSubmit = handleSubmit(async (formValues) => {
     try {
       setLoading(true);
+
+      /* Normalizar antes de enviar */
+      const payload = {
+        ...formValues,
+        name: normalize(formValues.name),
+        description: normalize(formValues.description)
+      };
+
       let result;
-      
-      if (!isEditing) {
-        result = await createCategory(category);
-        if (result && result.success) {
-          showSuccessToast("Categoría", "creada");
-        }else{
-          showErrorToast("Error al crear la Categoria")
-        }
-      }else{
-        result = await updateCategory(category.idCategory, category);
-        if (result && result.success) {
-          showSuccessToast("Categoría", "actualizada");
-        }else{
-          showErrorToast("Error al actualizar la Categoria")
-        }
+      if (isEditing) {
+        result = await updateCategory(payload.idCategory, payload);
+        result?.success
+          ? showSuccessToast("Categoría", "actualizada")
+          : showErrorToast("Error al actualizar la categoría");
+      } else {
+        result = await createCategory(payload);
+        result?.success
+          ? showSuccessToast("Categoría", "creada")
+          : showErrorToast("Error al crear la categoría");
       }
-      
-      if (result && result.success) {
-        onClose();
-      }
+
+      if (result?.success) onClose();
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocurrió un error inesperado");
     } finally {
       setLoading(false);
     }
@@ -63,24 +70,39 @@ const CategoryFormModal = ({ isOpen, onClose, category }) => {
 
   if (!isOpen) return null;
 
+  /* ────────────────────────── UI ──────────────────────────────── */
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+    >
       <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-[#003DA5]">{modalTitle}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={onSubmit} className="space-y-4">
+          {/* Nombre */}
           <div>
-            <label htmlFor="name" className="block text-gray-700 mb-1">Nombre</label>
+            <label htmlFor="name" className="block text-gray-700 mb-1">
+              Nombre
+            </label>
             <input
               id="name"
               type="text"
@@ -91,8 +113,11 @@ const CategoryFormModal = ({ isOpen, onClose, category }) => {
             />
           </div>
 
+          {/* Descripción */}
           <div>
-            <label htmlFor="description" className="block text-gray-700 mb-1">Descripción</label>
+            <label htmlFor="description" className="block text-gray-700 mb-1">
+              Descripción
+            </label>
             <textarea
               id="description"
               {...register("description")}
@@ -102,6 +127,7 @@ const CategoryFormModal = ({ isOpen, onClose, category }) => {
             ></textarea>
           </div>
 
+          {/* Botones */}
           <div className="flex justify-end space-x-3 mt-6">
             <button
               type="button"
