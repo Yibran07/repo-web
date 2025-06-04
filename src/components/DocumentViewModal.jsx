@@ -250,12 +250,14 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-gray-500 text-sm">Estudiante</p>
-            <p className="font-medium">{getStudentName(document.idStudent)}</p>
+            <p className="font-medium truncate" title={getStudentName(document.idStudent)}>
+              {getStudentName(document.idStudent)}
+            </p>
           </div>
           <div>
             <p className="text-gray-500 text-sm">Director</p>
             {getDirectors().length > 0 ? (
-              <p className="font-medium">
+              <p className="font-medium truncate" title={getDirectors().map(director => director.name).join(', ')}>
                 {getDirectors().map(director => director.name).join(', ')}
               </p>
             ) : (
@@ -269,7 +271,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
           <div>
             <p className="text-gray-500 text-sm">Supervisor</p>
             {getSupervisors().length > 0 ? (
-              <p className="font-medium">
+              <p className="font-medium truncate" title={getSupervisors().map(supervisor => supervisor.name).join(', ')}>
                 {getSupervisors().map(supervisor => supervisor.name).join(', ')}
               </p>
             ) : (
@@ -279,7 +281,7 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
           <div>
             <p className="text-gray-500 text-sm">Revisores</p>
             {getRevisors().length > 0 ? (
-              <p className="font-medium">
+              <p className="font-medium truncate" title={getRevisors().map(revisor => revisor.name).join(', ')}>
                 {getRevisors().map(revisor => revisor.name).join(', ')}
               </p>
             ) : (
@@ -453,6 +455,13 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
     return doc.downloadUrl || getCompleteFileUrl(doc.filePath);
   };
 
+  // Función para truncar texto largo si es necesario
+  const truncateText = (text, maxLength = 100) => {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
+  };
+
   return (
     <div className="fixed inset-0 flex justify-center items-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
       <div className="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
@@ -485,7 +494,9 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
           </div>
         ) : document ? (
           <div className="space-y-6">
-            <h3 className="text-xl font-bold">{document.title}</h3>
+            <h3 className="text-xl font-bold break-words line-clamp-2 hover:line-clamp-none transition-all duration-300" title={document.title}>
+              {document.title}
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-1">
@@ -510,11 +521,15 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-500 text-sm">Categoría</p>
-                      <p className="font-medium">{getCategoryName(document.idCategory)}</p>
+                      <p className="font-medium truncate" title={getCategoryName(document.idCategory)}>
+                        {getCategoryName(document.idCategory)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-sm">Fecha de publicación</p>
-                      <p className="font-medium">{formatDate(document.datePublication)}</p>
+                      <p className="font-medium truncate" title={formatDate(document.datePublication)}>
+                        {formatDate(document.datePublication)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -532,11 +547,15 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-500 text-sm">Carrera</p>
-                      <p className="font-medium">{getCareerInfo().name}</p>
+                      <p className="font-medium truncate" title={getCareerInfo().name}>
+                        {getCareerInfo().name}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-sm">Facultad</p>
-                      <p className="font-medium">{getFacultyInfo().name}</p>
+                      <p className="font-medium truncate" title={getFacultyInfo().name}>
+                        {getFacultyInfo().name}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -546,7 +565,9 @@ const DocumentViewModal = ({ isOpen, onClose, documentId }) => {
             <div>
               <h4 className="font-semibold text-gray-700 mb-2">Descripción</h4>
               <div className="border rounded-lg p-4 bg-gray-50">
-                <p className="text-gray-600">{document.description}</p>
+                <p className="text-gray-600 break-words whitespace-pre-line max-h-32 overflow-y-auto">
+                  {document.description}
+                </p>
               </div>
             </div>
 

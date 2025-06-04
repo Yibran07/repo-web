@@ -53,9 +53,9 @@ export default function Card({
       <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-20">
         <div className="flex justify-between items-center text-sm mb-2">
           <span className="opacity-80">{date ? date.split("T")[0] : "Sin fecha"}</span>
-          <span className="opacity-80">{displayAuthorName}</span>
+          <span className="opacity-80 truncate max-w-[40%]" title={displayAuthorName}>{displayAuthorName}</span>
         </div>
-        <h3 className="font-bold text-lg line-clamp-2">{title || "Sin título"}</h3>
+        <h3 className="font-bold text-lg truncate" title={title || "Sin título"}>{title || "Sin título"}</h3>
         
         <div className="flex items-center justify-between">
           <p className="opacity-80 text-xs truncate max-w-[70%]" title={categoryName}>{categoryName}</p>
