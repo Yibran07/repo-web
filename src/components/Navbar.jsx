@@ -88,6 +88,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
               <>
                 <div className="flex items-center justify-end space-x-10">
                   <p className="text-[#FFFFFF80]">Bienvenido: {user.name}</p>
+                  <p className="text-[#FFFFFF80]">Rol: {user.rol}</p>
                   {user.rol === "director" && (
                     <button
                       className='bg-transparent border-2 border-white px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300'

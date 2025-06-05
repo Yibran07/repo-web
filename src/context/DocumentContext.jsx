@@ -24,7 +24,7 @@ export function DocumentProvider({ children }) {
     try {
       setLoading(true);
       const res = await createDocumentRequest(document);
-      setDocuments(prevDocuments => [...prevDocuments, res.data.document]);
+      setDocuments(prevDocuments => [...prevDocuments, res.data.resource]);
       return {
         success: true,
         data: res.data
