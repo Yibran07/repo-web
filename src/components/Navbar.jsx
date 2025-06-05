@@ -68,6 +68,12 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
     return location.pathname === path;
   };
 
+  // Función para capitalizar la primera letra de un string
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+  };
+
   return (
     <>
       <nav className='bg-[#003DA5] text-white p-4'>
@@ -87,8 +93,10 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
             {isAuthenticated ? (
               <>
                 <div className="flex items-center justify-end space-x-10">
-                  <p className="text-[#FFFFFF80]">Bienvenido: {user.name}</p>
-                  <p className="text-[#FFFFFF80]">Rol: {user.rol}</p>
+                  <div className="flex flex-col">
+                    <p className="text-[#FFFFFF80]">Bienvenido: {user.name}</p>
+                    <p className="text-[#FFFFFF80] text-sm">Rol: {capitalizeFirstLetter(user.rol)}</p>
+                  </div>
                   {user.rol === "director" && (
                     <button
                       className='bg-transparent border-2 border-white px-4 py-2 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300'
@@ -175,7 +183,10 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
 
               {isAuthenticated ? (
                 <div className="flex items-center justify-end space-x-3">
-                  <p className="text-sm text-[#FFFFFF80]">Bienvenido: {user.name}</p>
+                  <div className="flex flex-col items-end">
+                    <p className="text-sm text-[#FFFFFF80]">Bienvenido: {user.name}</p>
+                    <p className="text-xs text-[#FFFFFF80]">Rol: {capitalizeFirstLetter(user.rol)}</p>
+                  </div>
                   {user.rol !== 'admin' && (
                     <button
                       className='bg-transparent border-2 border-white px-3 py-1 rounded font-bold hover:bg-white hover:text-[#003DA5] transition duration-300 text-base'
