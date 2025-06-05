@@ -95,7 +95,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
                 <div className="flex items-center justify-end space-x-10">
                   <div className="flex flex-col">
                     <p className="text-[#FFFFFF80]">Bienvenido: {user.name}</p>
-                    <p className="text-[#FFFFFF80] text-sm">Rol: {capitalizeFirstLetter(user.rol)}</p>
+                    <p className="text-white text-sm">{capitalizeFirstLetter(user.rol)}</p>
                   </div>
                   {user.rol === "director" && (
                     <button
@@ -185,7 +185,7 @@ const Navbar = ({ setShowMobileSidebar, onSearch }) => {
                 <div className="flex items-center justify-end space-x-3">
                   <div className="flex flex-col items-end">
                     <p className="text-sm text-[#FFFFFF80]">Bienvenido: {user.name}</p>
-                    <p className="text-xs text-[#FFFFFF80]">Rol: {capitalizeFirstLetter(user.rol)}</p>
+                    <p className="text-xs text-white">{capitalizeFirstLetter(user.rol)}</p>
                   </div>
                   {user.rol !== 'admin' && (
                     <button

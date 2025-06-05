@@ -24,7 +24,26 @@ export function DocumentProvider({ children }) {
     try {
       setLoading(true);
       const res = await createDocumentRequest(document);
-      setDocuments(prevDocuments => [...prevDocuments, res.data.resource]);
+      
+      if (res.data && res.data.resource) {
+        setDocuments(prevDocuments => {
+          if (Array.isArray(prevDocuments)) {
+            return [...prevDocuments, res.data.resource];
+          }
+          else if (prevDocuments && prevDocuments.resources) {
+            return {
+              ...prevDocuments,
+              resources: [...prevDocuments.resources, res.data.resource]
+            };
+          }
+          else {
+            return {
+              resources: [res.data.resource]
+            };
+          }
+        });
+      }
+      
       return {
         success: true,
         data: res.data
@@ -90,12 +109,18 @@ export function DocumentProvider({ children }) {
 
       setDocumentUserRelations(relationsRes.data.resourceUsers || []);
 
+      // Verificar que docsRes.data tenga la estructura esperada
       const enrichedDocuments = { ...docsRes.data };
-      if (enrichedDocuments.resources) {
+      
+      if (!enrichedDocuments.resources) {
+        enrichedDocuments.resources = [];
+      }
+      
+      if (Array.isArray(enrichedDocuments.resources)) {
         for (const doc of enrichedDocuments.resources) {
-          const documentRelations = relationsRes.data.resourceUsers.filter(
+          const documentRelations = relationsRes.data.resourceUsers?.filter(
             rel => rel.idResource === doc.idResource
-          );
+          ) || [];
 
           doc.relatedUsers = documentRelations.map(rel => rel.idUser);
         }
@@ -104,8 +129,8 @@ export function DocumentProvider({ children }) {
       setDocuments(enrichedDocuments);
       return enrichedDocuments;
     } catch (err) {
-      console.error(err);
-      return [];
+      console.error("Error fetching documents:", err);
+      return { resources: [] }; // Devolver estructura válida en caso de error
     } finally {
       setLoading(false);
     }
