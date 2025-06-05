@@ -9,6 +9,11 @@ import { useStudent } from "../context/StudentContext";
 
 import { showSuccessToast, showErrorToast } from "../util/toastUtils";
 
+/*  ──────────────────────────────────────────────────────────────
+    DocumentFormModal
+    Mantiene el ID numérico para el backend, pero muestra “#id — Nombre”
+    cuando el usuario selecciona una sugerencia.
+    ────────────────────────────────────────────────────────────── */
 const DocumentFormModal = ({ isOpen, onClose, document }) => {
   /* ───── estados ───────────────────────────────────────────── */
   const [loading, setLoading] = useState(false);
@@ -23,7 +28,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
     setValue,
   } = useForm();
 
-  // texto visible
+  // 1) texto que ve el usuario en los campos de ID (mostrar “#id — Nombre”)
   const [display, setDisplay] = useState({
     idStudent: "",
     idSupervisor: "",
@@ -31,7 +36,7 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
     idRevisor2: "",
   });
 
-  // sugerencias
+  // 2) sugerencias para autocompletar
   const [suggestions, setSuggestions] = useState({
     idStudent: [],
     idSupervisor: [],
@@ -39,10 +44,12 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
     idRevisor2: [],
   });
 
+  // mapeo de roles ↔︎ campo (para filtrar usuarios)
   const roleByField = {
     idSupervisor: "supervisor",
     idRevisor1: "revisor",
     idRevisor2: "revisor",
+    // idStudent no filtra por rol
   };
 
   /* ───── contextos ──────────────────────────────────────────── */
@@ -57,18 +64,54 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   const { users } = useUser();
   const { students } = useStudent();
 
-  /* ───── autocompletado ─────────────────────────────────────── */
+  /* ───── utilidades APA (sin cambios) ───────────────────────── */
+  const [apaCopied, setApaCopied] = useState(false);
+
+  const buildApaCitation = (formValues, studentsList) => {
+    const student = studentsList.find(
+      (s) => s.idStudent === Number(formValues.idStudent)
+    );
+    const author =
+      student && student.name
+        ? `${student.name} ${student.lastName || ""}`
+        : "Autor,A.A.";
+
+    const year = formValues.datePublication
+      ? new Date(formValues.datePublication).getFullYear()
+      : "s.f.";
+
+    const title = formValues.title || "Título del trabajo";
+
+    return `${author}. (${year}). ${title} [Tesis de licenciatura]. Repositorio Institucional UTRes Repo.`;
+  };
+
+  const copyApaToClipboard = async () => {
+    try {
+      const currentValues = getValues();
+      const citation = buildApaCitation(currentValues, students);
+      await navigator.clipboard.writeText(citation);
+      setApaCopied(true);
+      showSuccessToast("Referencia copiada");
+      setTimeout(() => setApaCopied(false), 2500);
+    } catch (err) {
+      console.error(err);
+      showErrorToast("No se pudo copiar la cita");
+    }
+  };
+
+  /* ───── autocompletado de IDs ───────────────────────────────── */
   const handleIdInputChange = (field, value) => {
+    // 1) actualizo el texto visible
     setDisplay((prev) => ({ ...prev, [field]: value }));
 
-    // si es un número pegado tal cual, lo guardamos en el form; si no, limpiamos
+    // 2) si es un número puro, guardo ese número; si no, vacío el campo en el form
     if (/^\d+$/.test(value)) {
       setValue(field, value, { shouldValidate: true });
     } else {
       setValue(field, "", { shouldValidate: true });
     }
 
-    // generar lista de sugerencias
+    // 3) generar sugerencias
     if (!value) {
       setSuggestions((prev) => ({ ...prev, [field]: [] }));
       return;
@@ -99,27 +142,30 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
   };
 
   const selectSuggestion = (field, item) => {
-    // etiqueta amigable: "#id — nombre completo"
+    // construyo “#id — Nombre Apellido”
     const label =
       field === "idStudent"
         ? `#${item.idStudent} — ${item.name}`
-        : `#${item.idUser} — ${item.name} ${item.lastName ?? ""}`.trim();
+        : `#${item.idUser} — ${item.name} ${item.lastName ?? ""
+          }`.trim();
 
     setDisplay((prev) => ({ ...prev, [field]: label }));
-    setValue(field, field === "idStudent" ? item.idStudent : item.idUser, {
-      shouldValidate: true,
-    });
+    setValue(
+      field,
+      field === "idStudent" ? item.idStudent : item.idUser,
+      { shouldValidate: true }
+    );
     setSuggestions((prev) => ({ ...prev, [field]: [] }));
   };
 
-  /* ───── efecto: precargar datos en modo edición ────────────── */
+  /* ───── efectos: precargar datos en modo edición ───────────── */
   const isEditing = !!document;
   const modalTitle = isEditing ? "Editar Recurso" : "Agregar Recurso";
   const buttonText = isEditing ? "Actualizar" : "Guardar";
 
   useEffect(() => {
     if (document) {
-      // rellenar datos base
+      // 1) datos básicos del recurso
       reset({
         idResource: document.idResource,
         title: document.title,
@@ -132,45 +178,54 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
         idDirector: document.idDirector,
       });
 
-      // mostrar etiquetas con #id — nombre
+      // 2) precargar “#id — Nombre” en los campos de ID
       const stu = students.find((s) => s.idStudent === +document.idStudent);
-      if (stu)
-        setDisplay((d) => ({ ...d, idStudent: `#${stu.idStudent} — ${stu.name}` }));
+      if (stu) {
+        setDisplay((d) => ({
+          ...d,
+          idStudent: `#${stu.idStudent} — ${stu.name}`,
+        }));
+      }
 
       if (documentUserRelations?.length) {
-        const rels = documentUserRelations
-          .filter((r) => +r.idResource === +document.idResource)
-          .map((r) => ({ ...r, user: users.find((u) => u.idUser === +r.idUser) }));
-
-        const supervisor = rels.find((r) => r.user?.rol === "supervisor");
-        const revs = rels.filter((r) => r.user?.rol === "revisor");
-
-        if (supervisor)
-          setDisplay((d) => ({
-            ...d,
-            idSupervisor: `#${supervisor.user.idUser} — ${supervisor.user.name} ${supervisor.user.lastName ?? ""
-              }`,
-          }));
-        if (revs[0])
-          setDisplay((d) => ({
-            ...d,
-            idRevisor1: `#${revs[0].user.idUser} — ${revs[0].user.name} ${revs[0].user.lastName ?? ""
-              }`,
-          }));
-        if (revs[1])
-          setDisplay((d) => ({
-            ...d,
-            idRevisor2: `#${revs[1].user.idUser} — ${revs[1].user.name} ${revs[1].user.lastName ?? ""
-              }`,
+        const docRels = documentUserRelations
+          .filter((rel) => +rel.idResource === +document.idResource)
+          .map((rel) => ({
+            ...rel,
+            userObj: users.find((u) => u.idUser === +rel.idUser),
           }));
 
-        // pre-set IDs (por si no estaban)
-        if (supervisor) setValue("idSupervisor", supervisor.user.idUser);
-        if (revs[0]) setValue("idRevisor1", revs[0].user.idUser);
-        if (revs[1]) setValue("idRevisor2", revs[1].user.idUser);
+        const supervisor = docRels.find((r) => r.userObj?.rol === "supervisor");
+        const revs = docRels.filter((r) => r.userObj?.rol === "revisor");
+
+        if (supervisor && supervisor.userObj) {
+          setDisplay((d) => ({
+            ...d,
+            idSupervisor: `#${supervisor.userObj.idUser
+              } — ${supervisor.userObj.name} ${supervisor.userObj.lastName ?? ""}`.trim(),
+          }));
+          setValue("idSupervisor", supervisor.userObj.idUser);
+        }
+
+        if (revs[0] && revs[0].userObj) {
+          setDisplay((d) => ({
+            ...d,
+            idRevisor1: `#${revs[0].userObj.idUser} — ${revs[0].userObj.name} ${revs[0].userObj.lastName ?? ""
+              }`.trim(),
+          }));
+          setValue("idRevisor1", revs[0].userObj.idUser);
+        }
+        if (revs[1] && revs[1].userObj) {
+          setDisplay((d) => ({
+            ...d,
+            idRevisor2: `#${revs[1].userObj.idUser} — ${revs[1].userObj.name} ${revs[1].userObj.lastName ?? ""
+              }`.trim(),
+          }));
+          setValue("idRevisor2", revs[1].userObj.idUser);
+        }
       }
     } else {
-      // modo nuevo
+      // modo nuevo: limpio todo
       reset({
         idResource: null,
         title: "",
@@ -191,13 +246,80 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
         idRevisor2: "",
       });
     }
-  }, [document, reset, user, students, users, documentUserRelations, setValue]);
+  }, [
+    document,
+    reset,
+    user,
+    students,
+    users,
+    documentUserRelations,
+    setValue,
+  ]);
 
-  /* ───── envío (sin cambios) ───────────────────────────────── */
+  /* ───── envío ──────────────────────────────────────────────── */
   const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
-      /* …  (lógica de guardado idéntica a la versión anterior) … */
+
+      if (isEditing) {
+        const updateData = { ...data, idResource: document.idResource };
+        if (data.file && data.file[0]) updateData.file = data.file[0];
+        if (data.image && data.image[0]) updateData.image = data.image[0];
+
+        const result = await updateDocument(updateData);
+        if (result?.success) {
+          showSuccessToast("Recurso actualizado exitosamente");
+          onClose();
+        } else {
+          showErrorToast("Error al actualizar el recurso");
+        }
+      } else {
+        // validar archivos
+        if (!data.file?.[0] || !data.image?.[0]) {
+          showErrorToast(
+            "Por favor selecciona ambos archivos: documento principal e imagen"
+          );
+          setLoading(false);
+          return;
+        }
+        // 1️⃣ crear recurso
+        const formData = {
+          title: data.title,
+          description: data.description,
+          datePublication: data.datePublication,
+          isActive: "1",
+          idStudent: String(data.idStudent),
+          idCategory: String(data.idCategory),
+          file: data.file[0],
+          image: data.image[0],
+        };
+        const response = await createDocument(formData);
+        if (!response?.success) {
+          showErrorToast(response?.message ?? "Error al crear el recurso");
+          setLoading(false);
+          return;
+        }
+        // 2️⃣ relaciones con usuarios
+        const resourceId = response.data.resource.idResource;
+        const toCreate = [
+          createDocumentByUser(String(data.idDirector), resourceId),
+          createDocumentByUser(String(data.idSupervisor), resourceId),
+          createDocumentByUser(String(data.idRevisor1), resourceId),
+          createDocumentByUser(String(data.idRevisor2), resourceId),
+        ];
+        await Promise.all(toCreate);
+
+        showSuccessToast("Recurso creado exitosamente");
+        onClose();
+      }
+    } catch (err) {
+      console.error("Error completo:", err);
+      const msg =
+        err.response?.data?.message ||
+        (err.response?.status === 400
+          ? "Error en la solicitud: datos inválidos"
+          : "Error al procesar el recurso");
+      showErrorToast(msg);
     } finally {
       setLoading(false);
     }
@@ -205,38 +327,60 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
 
   if (!isOpen) return null;
 
-  /* ───── render — inputs de muestra id+nombre ───────────────── */
+  /* ───── render ─────────────────────────────────────────────── */
   return (
     <div
       className="fixed inset-0 flex justify-center items-center"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50 }}
     >
       <div className="bg-white rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        {/* cabecera */}
+        {/* título y botón cerrar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-[#003DA5]">{modalTitle}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            {/* icono X */}
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
-              viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* formulario */}
         <form onSubmit={onSubmit} className="space-y-4" encType="multipart/form-data">
-          {/* … campos de título, descripción, fecha, categoría, archivos … */}
+          {/* título */}
+          <div>
+            <label className="block text-gray-700 mb-1">Título</label>
+            <input
+              type="text"
+              className={`w-full border ${errors.title ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("title", { required: "El título es obligatorio" })}
+            />
+            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+          </div>
 
-          {/* estudiante */}
+          {/* descripción */}
+          <div>
+            <label className="block text-gray-700 mb-1">Descripción</label>
+            <textarea
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows="4"
+              {...register("description")}
+              required
+            ></textarea>
+          </div>
+
+          {/* id estudiante */}
           <div className="relative">
             <label className="block text-gray-700 mb-1">ID Estudiante</label>
             <input
               type="text"
               placeholder="ID o nombre"
-              className={`w-full border ${errors.idStudent ? "border-red-500" : "border-gray-300"
-                } rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full border ${errors.idStudent ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               value={display.idStudent}
               onChange={(e) => handleIdInputChange("idStudent", e.target.value)}
             />
@@ -253,13 +397,182 @@ const DocumentFormModal = ({ isOpen, onClose, document }) => {
                 ))}
               </ul>
             )}
-            {errors.idStudent && (
-              <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>
+            {errors.idStudent && <p className="text-red-500 text-xs mt-1">{errors.idStudent.message}</p>}
+          </div>
+
+          {/* ID Supervisor */}
+          <div className="relative">
+            <label className="block text-gray-700 mb-1">ID Supervisor</label>
+            <input
+              type="text"
+              placeholder="ID o nombre"
+              className={`w-full border ${errors.idSupervisor ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={display.idSupervisor}
+              onChange={(e) => handleIdInputChange("idSupervisor", e.target.value)}
+            />
+            {suggestions.idSupervisor.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                {suggestions.idSupervisor.map((u) => (
+                  <li
+                    key={u.idUser}
+                    onClick={() => selectSuggestion("idSupervisor", u)}
+                    className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                  >
+                    #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                  </li>
+                ))}
+              </ul>
+            )}
+            {errors.idSupervisor && <p className="text-red-500 text-xs mt-1">{errors.idSupervisor.message}</p>}
+          </div>
+
+          {/* revisores */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* ID Primer revisor */}
+            <div className="relative">
+              <label className="block text-gray-700 mb-1">ID Primer revisor</label>
+              <input
+                type="text"
+                placeholder="ID o nombre"
+                className={`w-full border ${errors.idRevisor1 ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                value={display.idRevisor1}
+                onChange={(e) => handleIdInputChange("idRevisor1", e.target.value)}
+              />
+              {suggestions.idRevisor1.length > 0 && (
+                <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                  {suggestions.idRevisor1.map((u) => (
+                    <li
+                      key={u.idUser}
+                      onClick={() => selectSuggestion("idRevisor1", u)}
+                      className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                    >
+                      #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {errors.idRevisor1 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor1.message}</p>}
+            </div>
+
+            {/* ID Segundo revisor */}
+            <div className="relative">
+              <label className="block text-gray-700 mb-1">ID Segundo revisor</label>
+              <input
+                type="text"
+                placeholder="ID o nombre"
+                className={`w-full border ${errors.idRevisor2 ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                value={display.idRevisor2}
+                onChange={(e) => handleIdInputChange("idRevisor2", e.target.value)}
+              />
+              {suggestions.idRevisor2.length > 0 && (
+                <ul className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow z-10 text-sm">
+                  {suggestions.idRevisor2.map((u) => (
+                    <li
+                      key={u.idUser}
+                      onClick={() => selectSuggestion("idRevisor2", u)}
+                      className="px-3 py-1 hover:bg-blue-50 cursor-pointer"
+                    >
+                      #{u.idUser} — {u.name} {u.lastName ?? ""} ({u.rol})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {errors.idRevisor2 && <p className="text-red-500 text-xs mt-1">{errors.idRevisor2.message}</p>}
+            </div>
+          </div>
+
+          {/* fecha & categoría */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-1">Fecha</label>
+              <input
+                type="date"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                min="1900-01-01"
+                max={new Date().toISOString().split("T")[0]}
+                {...register("datePublication")}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-1">Categoría</label>
+              <select
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...register("idCategory")}
+                required
+              >
+                <option value="">Seleccionar categoria</option>
+                {categories.map((cat) => (
+                  <option value={cat.idCategory} key={cat.idCategory}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* archivo */}
+          <div>
+            <label className="block text-gray-700 mb-1">Archivo (Imagen, Video o PDF)</label>
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.mp4"
+              className={`w-full border ${errors.file ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("file", {
+                required: isEditing ? false : "Debes seleccionar un archivo",
+              })}
+            />
+            {errors.file && <p className="text-red-500 text-xs mt-1">{errors.file.message}</p>}
+            {isEditing && document.filePath && (
+              <p className="text-xs text-gray-500 mt-1">
+                Archivo actual: {document.filePath.split("/").pop()}
+                <br />
+                Solo sube uno nuevo si deseas reemplazar el existente.
+              </p>
             )}
           </div>
 
-          {/* supervisor */}
-          {/* … copia el mismo patrón de arriba para idSupervisor, idRevisor1, idRevisor2 … */}
+          {/* imagen */}
+          <div>
+            <label className="block text-gray-700 mb-1">Imagen de portada</label>
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg"
+              className={`w-full border ${errors.image ? "border-red-500" : "border-gray-300"} rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              {...register("image", {
+                required: isEditing ? false : "Debes seleccionar una imagen",
+              })}
+            />
+            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
+            {isEditing && document.imageUrl && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">Imagen actual:</p>
+                <img
+                  src={document.imageUrl}
+                  alt="Portada actual"
+                  className="h-20 object-contain border rounded"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* acciones */}
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-[#003DA5] text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? "Procesando..." : buttonText}
+            </button>
+          </div>
         </form>
       </div>
     </div>
